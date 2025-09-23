@@ -13,6 +13,13 @@ CUSTOM_OBJECT_CLASSES=${CUSTOM_OBJECT_CLASSES:-"custom"}
 CUSTOM_PRIM_PREFIX=${CUSTOM_PRIM_PREFIX:-"custom"}
 FALLBACK_COUNT=${FALLBACK_COUNT:-2}
 DATA_ROOT=${DATA_ROOT:-"${ISAAC_SIM_PATH}/custom_sdg/custom_data"}
+CAM_POS=${CAM_POS:-""}
+OBJ_POS=${OBJ_POS:-""}
+OBJ_ROT=${OBJ_ROT:-""}
+DIST_POS=${DIST_POS:-""}
+DIST_ROT=${DIST_ROT:-""}
+DIST_SCALE=${DIST_SCALE:-""}
+OBJECT_SCALE=${OBJECT_SCALE:-""}
 
 mkdir -p "${DATA_ROOT}"
 
@@ -58,8 +65,19 @@ run_generation() {
   local distractors=$3
   local asset_args=(--asset_paths)
   local class_args=(--object_classes)
+  local pos_rot_args=()
+  local scale_args=()
   for a in "${ASSETS[@]}"; do asset_args+=("$a"); done
   for c in "${CLASSES[@]}"; do class_args+=("$c"); done
+
+  # Build optional args
+  [[ -n "$CAM_POS"    ]] && pos_rot_args+=(--cam_pos  "$CAM_POS")
+  [[ -n "$OBJ_POS"    ]] && pos_rot_args+=(--obj_pos  "$OBJ_POS")
+  [[ -n "$OBJ_ROT"    ]] && pos_rot_args+=(--obj_rot  "$OBJ_ROT")
+  [[ -n "$DIST_POS"   ]] && pos_rot_args+=(--dist_pos "$DIST_POS")
+  [[ -n "$DIST_ROT"   ]] && pos_rot_args+=(--dist_rot "$DIST_ROT")
+  [[ -n "$DIST_SCALE" ]] && pos_rot_args+=(--dist_scale "$DIST_SCALE")
+  [[ -n "$OBJECT_SCALE" ]] && scale_args+=(--object_scale "$OBJECT_SCALE")
 
   echo "Launching generation for ${name} (${frames} frames, distractors=${distractors})"
   env -u CONDA_DEFAULT_ENV -u CONDA_PREFIX -u CONDA_PYTHON_EXE -u CONDA_SHLVL -u _CE_CONDA -u _CE_M \
@@ -73,7 +91,9 @@ run_generation() {
     "${asset_args[@]}" \
     "${class_args[@]}" \
     --prim_prefix "${CUSTOM_PRIM_PREFIX}" \
-    --fallback_count "${FALLBACK_COUNT}"
+    --fallback_count "${FALLBACK_COUNT}" \
+    "${scale_args[@]}" \
+    "${pos_rot_args[@]}"
 }
 
 run_generation "distractors_warehouse" 2000 "warehouse"

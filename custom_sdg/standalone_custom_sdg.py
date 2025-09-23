@@ -43,6 +43,78 @@ def _expand_path(path: str) -> str:
     return os.path.abspath(os.path.expanduser(path))
 
 
+def _parse_object_scale_arg(value: str) -> tuple:
+    """
+    Parse an object scale argument into ((minx,miny,minz), (maxx,maxy,maxz)).
+    Accepted formats (comma or colon separators):
+      - "0.01" -> fixed uniform scale (0.01,0.01,0.01)
+      - "0.008,0.015" -> uniform range across axes [min,max]
+      - "0.01,0.01,0.01" -> fixed per-axis vector
+      - "0.008,0.008,0.008,0.015,0.015,0.015" -> per-axis min,max
+    """
+    if value is None or value == "":
+        raise ValueError("Empty object scale string")
+    s = value.replace(" ", "").replace(";", ",")
+    # Normalize separators
+    s = s.replace(":", ",")
+    parts = [p for p in s.split(",") if p != ""]
+    try:
+        nums = [float(p) for p in parts]
+    except Exception:
+        raise argparse.ArgumentTypeError(f"--object_scale expects numbers, got: '{value}'")
+
+    if len(nums) == 1:
+        a = nums[0]
+        return "scalar", a, a
+    if len(nums) == 2:
+        a, b = nums
+        return "scalar", a, b
+    if len(nums) == 3:
+        x, y, z = nums
+        return "vector", (x, y, z), (x, y, z)
+    if len(nums) == 6:
+        x1, y1, z1, x2, y2, z2 = nums
+        return "vector", (x1, y1, z1), (x2, y2, z2)
+    raise argparse.ArgumentTypeError(
+        "--object_scale accepts 1, 2, 3 or 6 numbers (see README)."
+    )
+
+
+def _parse_vec3_range(value: str, label: str) -> tuple:
+    """
+    Parse a 3D range specification into ((xmin,ymin,zmin), (xmax,ymax,zmax)).
+    Accepted forms (commas or colons):
+      - s                      -> fixed (s,s,s)
+      - min,max                -> scalar range applied to all axes
+      - x,y,z                  -> fixed per-axis
+      - x1,y1,z1,x2,y2,z2      -> per-axis min,max
+    """
+    if value is None or value == "":
+        raise ValueError(f"Empty {label} range string")
+    s = value.replace(" ", "").replace(";", ",").replace(":", ",")
+    parts = [p for p in s.split(",") if p != ""]
+    try:
+        nums = [float(p) for p in parts]
+    except Exception:
+        raise argparse.ArgumentTypeError(f"--{label} expects numbers, got: '{value}'")
+
+    if len(nums) == 1:
+        a = nums[0]
+        return (a, a, a), (a, a, a)
+    if len(nums) == 2:
+        a, b = nums
+        return (a, a, a), (b, b, b)
+    if len(nums) == 3:
+        x, y, z = nums
+        return (x, y, z), (x, y, z)
+    if len(nums) == 6:
+        x1, y1, z1, x2, y2, z2 = nums
+        return (x1, y1, z1), (x2, y2, z2)
+    raise argparse.ArgumentTypeError(
+        f"--{label} accepts 1, 2, 3 or 6 numbers (see README)."
+    )
+
+
 parser = argparse.ArgumentParser("Dataset generator")
 parser.add_argument("--headless", type=_str_to_bool, default=False, help="Launch script headless, default is False")
 parser.add_argument("--height", type=int, default=544, help="Height of image")
@@ -114,6 +186,58 @@ parser.add_argument(
     default=2,
     help="Number of fallback USD references per asset when Replicator instances are missing.",
 )
+parser.add_argument(
+    "--object_scale",
+    type=str,
+    default=None,
+    help=(
+        "Object scale. Formats: 's' (fixed), 'min,max' (scalar range), 'x,y,z' (fixed per-axis), "
+        "or '(x_min,y_min,z_min,x_max,y_max,z_max)' (per-axis ranges). Commas or colons accepted. "
+        "Omitted -> fixed 0.01.")
+)
+parser.add_argument(
+    "--cam_pos",
+    type=str,
+    default=None,
+    help=(
+        "Camera position range. Formats: 's' (fixed), 'min,max' (scalar range), 'x,y,z' (fixed per-axis), "
+        "or '(x_min,y_min,z_min,x_max,y_max,z_max)'.")
+)
+parser.add_argument(
+    "--obj_pos",
+    type=str,
+    default=None,
+    help=(
+        "Object group position range. Same formats as --cam_pos.")
+)
+parser.add_argument(
+    "--obj_rot",
+    type=str,
+    default=None,
+    help=(
+        "Object group rotation (degrees) range. Same formats as --cam_pos.")
+)
+parser.add_argument(
+    "--dist_pos",
+    type=str,
+    default=None,
+    help=(
+        "Distractor group position range. Same formats as --cam_pos.")
+)
+parser.add_argument(
+    "--dist_rot",
+    type=str,
+    default=None,
+    help=(
+        "Distractor group rotation (degrees) range. Same formats as --cam_pos.")
+)
+parser.add_argument(
+    "--dist_scale",
+    type=str,
+    default=None,
+    help=(
+        "Distractor scale: accepts 's', 'min,max', 'x,y,z' or '(x_min,y_min,z_min,x_max,y_max,z_max)'.")
+)
 
 args, _ = parser.parse_known_args()
 
@@ -183,6 +307,67 @@ LOCAL_MATERIAL_DIRS = _gather_material_dirs(CUSTOM_ASSET_PATHS)
 OBJECT_CLASS = args.object_class
 OBJECT_PRIM_PREFIX = args.prim_prefix
 FALLBACK_COUNT = max(1, args.fallback_count)
+
+# Object scale range
+try:
+    if args.object_scale:
+        OBJ_SCALE_MODE, OBJ_SCALE_MIN, OBJ_SCALE_MAX = _parse_object_scale_arg(args.object_scale)
+    else:
+        # Default fixed uniform scalar (equivalent to (0.01,0.01,0.01))
+        OBJ_SCALE_MODE, OBJ_SCALE_MIN, OBJ_SCALE_MAX = "scalar", 0.01, 0.01
+except Exception as _exc:
+    raise SystemExit(f"Invalid --object_scale value: {args.object_scale} ({_exc})")
+
+# Camera position range
+try:
+    if args.cam_pos:
+        CAM_POS_MIN, CAM_POS_MAX = _parse_vec3_range(args.cam_pos, "cam_pos")
+    else:
+        CAM_POS_MIN, CAM_POS_MAX = (-0.75, -0.75, 0.75), (0.75, 0.75, 1.0)
+except Exception as _exc:
+    raise SystemExit(f"Invalid --cam_pos value: {args.cam_pos} ({_exc})")
+
+# Object group position/rotation ranges
+try:
+    if args.obj_pos:
+        OBJ_POS_MIN, OBJ_POS_MAX = _parse_vec3_range(args.obj_pos, "obj_pos")
+    else:
+        OBJ_POS_MIN, OBJ_POS_MAX = (-0.3, -0.2, 0.35), (0.3, 0.2, 0.5)
+except Exception as _exc:
+    raise SystemExit(f"Invalid --obj_pos value: {args.obj_pos} ({_exc})")
+
+try:
+    if args.obj_rot:
+        OBJ_ROT_MIN, OBJ_ROT_MAX = _parse_vec3_range(args.obj_rot, "obj_rot")
+    else:
+        OBJ_ROT_MIN, OBJ_ROT_MAX = (0, -45, 0), (0, 45, 360)
+except Exception as _exc:
+    raise SystemExit(f"Invalid --obj_rot value: {args.obj_rot} ({_exc})")
+
+# Distractor position/rotation/scale ranges
+try:
+    if args.dist_pos:
+        DIST_POS_MIN, DIST_POS_MAX = _parse_vec3_range(args.dist_pos, "dist_pos")
+    else:
+        DIST_POS_MIN, DIST_POS_MAX = (-2, -2, 0), (2, 2, 0)
+except Exception as _exc:
+    raise SystemExit(f"Invalid --dist_pos value: {args.dist_pos} ({_exc})")
+
+try:
+    if args.dist_rot:
+        DIST_ROT_MIN, DIST_ROT_MAX = _parse_vec3_range(args.dist_rot, "dist_rot")
+    else:
+        DIST_ROT_MIN, DIST_ROT_MAX = (0, 0, 0), (0, 30, 360)
+except Exception as _exc:
+    raise SystemExit(f"Invalid --dist_rot value: {args.dist_rot} ({_exc})")
+
+try:
+    if args.dist_scale:
+        DIST_SCALE_MODE, DIST_SCALE_MIN, DIST_SCALE_MAX = _parse_object_scale_arg(args.dist_scale)
+    else:
+        DIST_SCALE_MODE, DIST_SCALE_MIN, DIST_SCALE_MAX = "scalar", 1.0, 1.5
+except Exception as _exc:
+    raise SystemExit(f"Invalid --dist_scale value: {args.dist_scale} ({_exc})")
 
 # Resolve per-asset classes with strict validation when multi-asset
 if len(CUSTOM_ASSET_PATHS) > 1:
@@ -747,25 +932,31 @@ def main():
         # Camera motion
         with cam:
             rep.modify.pose(
-                position=rep.distribution.uniform((-0.75, -0.75, 0.75), (0.75, 0.75, 1.0)),
+                position=rep.distribution.uniform(CAM_POS_MIN, CAM_POS_MAX),
                 look_at=(0, 0, 0),
             )
 
-        # Object pose randomization (fixed scale 0.01)
+        # Object pose randomization (scale from CLI; default fixed 0.01)
         with rep_custom_group:
+            _scale_dist = rep.distribution.uniform(OBJ_SCALE_MIN, OBJ_SCALE_MAX)
             rep.modify.pose(
-                position=rep.distribution.uniform((-0.3, -0.2, 0.35), (0.3, 0.2, 0.5)),
-                rotation=rep.distribution.uniform((0, -45, 0), (0, 45, 360)),
-                scale=rep.distribution.uniform((0.01, 0.01, 0.01), (0.01, 0.01, 0.01)),
+                position=rep.distribution.uniform(OBJ_POS_MIN, OBJ_POS_MAX),
+                rotation=rep.distribution.uniform(OBJ_ROT_MIN, OBJ_ROT_MAX),
+                scale=_scale_dist,
             )
 
         # Distractors (if any)
         if args.distractors != "None":
             with rep_distractor_group:
+                _dist_scale = (
+                    rep.distribution.uniform(DIST_SCALE_MIN, DIST_SCALE_MAX)
+                    if DIST_SCALE_MODE == "scalar"
+                    else rep.distribution.uniform(DIST_SCALE_MIN, DIST_SCALE_MAX)
+                )
                 rep.modify.pose(
-                    position=rep.distribution.uniform((-2, -2, 0), (2, 2, 0)),
-                    rotation=rep.distribution.uniform((0, 0, 0), (0, 30, 360)),
-                    scale=rep.distribution.uniform(1, 1.5),
+                    position=rep.distribution.uniform(DIST_POS_MIN, DIST_POS_MAX),
+                    rotation=rep.distribution.uniform(DIST_ROT_MIN, DIST_ROT_MAX),
+                    scale=_dist_scale,
                 )
 
         # Lighting randomization

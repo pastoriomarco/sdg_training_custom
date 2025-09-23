@@ -36,6 +36,13 @@ DISTRACTORS=${DISTRACTORS:-"warehouse"}
 DISTRACTORS_TRAIN=${DISTRACTORS_TRAIN:-"$DISTRACTORS"}
 DISTRACTORS_VAL=${DISTRACTORS_VAL:-"$DISTRACTORS"}
 DISTRACTORS_TEST=${DISTRACTORS_TEST:-"$DISTRACTORS"}
+OBJECT_SCALE=${OBJECT_SCALE:-""}
+CAM_POS=${CAM_POS:-""}
+OBJ_POS=${OBJ_POS:-""}
+OBJ_ROT=${OBJ_ROT:-""}
+DIST_POS=${DIST_POS:-""}
+DIST_ROT=${DIST_ROT:-""}
+DIST_SCALE=${DIST_SCALE:-""}
 
 # Resolve paths relative to this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -129,6 +136,8 @@ run_split() {
   local frames=$2
   local dist=${3:-"$DISTRACTORS"}
   local material_args=()
+  local scale_args=()
+  local pos_rot_args=()
   local asset_args=(--asset_paths)
   local class_args=(--object_classes)
   if [[ -n "$CUSTOM_MATERIALS_DIRS" ]]; then
@@ -137,6 +146,16 @@ run_split() {
       [[ -n "$dir" ]] && material_args+=(--materials_dir "$dir")
     done
   fi
+  if [[ -n "$OBJECT_SCALE" ]]; then
+    scale_args+=(--object_scale "$OBJECT_SCALE")
+  fi
+  # Pos/rot/scale ranges
+  [[ -n "$CAM_POS"   ]] && pos_rot_args+=(--cam_pos  "$CAM_POS")
+  [[ -n "$OBJ_POS"   ]] && pos_rot_args+=(--obj_pos  "$OBJ_POS")
+  [[ -n "$OBJ_ROT"   ]] && pos_rot_args+=(--obj_rot  "$OBJ_ROT")
+  [[ -n "$DIST_POS"  ]] && pos_rot_args+=(--dist_pos "$DIST_POS")
+  [[ -n "$DIST_ROT"  ]] && pos_rot_args+=(--dist_rot "$DIST_ROT")
+  [[ -n "$DIST_SCALE" ]] && pos_rot_args+=(--dist_scale "$DIST_SCALE")
   for a in "${ASSETS[@]}"; do asset_args+=("$a"); done
   for c in "${CLASSES[@]}"; do class_args+=("$c"); done
   echo "Generating $split with $frames frames..."
@@ -151,7 +170,9 @@ run_split() {
     "${class_args[@]}" \
     --prim_prefix "$CUSTOM_PRIM_PREFIX" \
     --fallback_count "$FALLBACK_COUNT" \
-    "${material_args[@]}"
+    "${material_args[@]}" \
+    "${scale_args[@]}" \
+    "${pos_rot_args[@]}"
 }
 
 run_split train "$FRAMES_TRAIN" "$DISTRACTORS_TRAIN"

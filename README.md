@@ -33,9 +33,10 @@ You can provide assets in two ways:
 - Direct Python: pass repeated args; single or multiple values work the same way:
   - `--asset_paths /a.usd /b.usd --object_classes cup bottle`
   - `--asset_paths /a.usd --object_classes custom`
-- Objects must be in `.usd` format: check the scale of your objects!
+- Objects must be in `.usd` format: check the scale of your objects! You can control the in-sim object scale via `OBJECT_SCALE` (see Notes).
 
 Important: When more than one asset is provided, the number of classes must equal the number of assets (strict 1:1). The generator enforces this and will exit with an error if they mismatch. The order defines class ids (stable across splits) and is used to build COCO categories and the dataset YAML.
+Note: since I use this for isaac_ros_foundationpose pipeline, I tested it mainly on single-class version. Let me know if you find some issue on multi-class version!
 
 Fallback prim paths also use a prefix you can change via `--prim_prefix` (default `custom`).
 
@@ -75,10 +76,16 @@ Option A — Train/Val/Test + COCO→YOLO (recommended):
 - Single or multi asset & classes (strict 1:1):
   `CUSTOM_ASSET_PATHS=/a.usd[:/b.usd:...] CUSTOM_OBJECT_CLASSES=classA[:classB:...] ./custom_sdg/custom_datagen_convert_yolov8.sh`
   - Important env vars: `SIM_PY` (Isaac `python.sh`), `OUT_ROOT` (dataset root), `WIDTH/HEIGHT/HEADLESS`, `CUSTOM_*` (assets, class, prefix, materials).
+  - Optional range env vars:
+    - `OBJECT_SCALE` — object scale range
+    - `CAM_POS` — camera position range
+    - `OBJ_POS` / `OBJ_ROT` — custom object group position/rotation ranges
+    - `DIST_POS` / `DIST_ROT` / `DIST_SCALE` — distractor position/rotation/scale ranges
 
 Option B — Three passes (warehouse/additional/none) from inside Isaac Sim:
 - Copy or mount this folder to `${ISAAC_SIM_PATH}/custom_sdg` so that `standalone_custom_sdg.py` is on disk there.
 - Run: `CUSTOM_ASSET_PATH=$HOME/Downloads/source/your_object.usd ./custom_datagen.sh`
+- The same optional range env vars (`OBJECT_SCALE`, `CAM_POS`, `OBJ_POS`, `OBJ_ROT`, `DIST_POS`, `DIST_ROT`, `DIST_SCALE`) are supported and forwarded to the generator.
 
 Direct Python launch (advanced):
 - `bash "$SIM_PY" custom_sdg/standalone_custom_sdg.py --asset_paths /a.usd [/b.usd ...] --object_classes classA [classB ...] --data_dir /tmp/out --distractors None --prim_prefix custom`
@@ -93,7 +100,51 @@ Training YOLOv8
 Notes & Customization
 ---------------------
 - Distractors: `--distractors` accepts `warehouse`, `additional`, or `None`.
-- Pose & scale ranges are in `standalone_custom_sdg.py` (search for `rep.modify.pose` for both camera and objects). Scale is fixed to 0.01 by default; adjust as needed.
+- Pose & scale ranges are in `standalone_custom_sdg.py` (search for `rep.modify.pose` for both camera and objects). Object scale is configurable via `OBJECT_SCALE` env var (convert script) or `--object_scale` (Python); defaults to fixed `0.01` if not provided.
+
+Object Scale
+------------
+- Convert script (env var): set `OBJECT_SCALE` before running `custom_datagen_convert_yolov8.sh`.
+- Direct Python: pass `--object_scale` with the same formats.
+
+Accepted formats (commas or colons as separators):
+- Single value: `s`
+  - Example: `0.01`
+  - Meaning: fixed uniform scale `(s, s, s)`.
+- Two values: `min,max`
+  - Example: `0.008,0.015`
+  - Meaning: scalar range applied to all axes (a single factor in `[min,max]`).
+- Three values: `x,y,z`
+  - Example: `0.01,0.01,0.01`
+  - Meaning: fixed per-axis scale `(x, y, z)`.
+- Six values: `(x_min, y_min, z_min, x_max, y_max, z_max)`
+  - Example: `0.008,0.008,0.008,0.015,0.015,0.015`
+  - Meaning: independent per-axis ranges.
+
+Notes:
+- Separators: `,` or `:` both work; spaces are ignored.
+- Defaults to `0.01` if not provided.
+
+Position/Rotation/Scale Ranges
+------------------------------
+All vector ranges accept the same formats as `OBJECT_SCALE` (commas or colons):
+- Single value: `s` → fixed `(s, s, s)`
+- Two values: `min,max` → scalar range applied to all axes
+- Three values: `x,y,z` → fixed per-axis
+- Six values: `(x_min, y_min, z_min, x_max, y_max, z_max)` → per-axis ranges
+
+Variables and CLI flags:
+- Camera: `CAM_POS` or `--cam_pos`
+- Custom objects: `OBJ_POS`/`--obj_pos`, `OBJ_ROT`/`--obj_rot`
+- Distractors: `DIST_POS`/`--dist_pos`, `DIST_ROT`/`--dist_rot`, `DIST_SCALE`/`--dist_scale`
+
+Defaults (if not set):
+- Camera position: `(-0.75, -0.75, 0.75)` to `(0.75, 0.75, 1.0)`
+- Object position: `(-0.3, -0.2, 0.35)` to `(0.3, 0.2, 0.5)`
+- Object rotation (deg): `(0, -45, 0)` to `(0, 45, 360)`
+- Distractor position: `(-2, -2, 0)` to `(2, 2, 0)`
+- Distractor rotation (deg): `(0, 0, 0)` to `(0, 30, 360)`
+- Distractor scale: `1` to `1.5`
 - Fallback behavior: If Replicator instances don’t appear, the script references your asset(s) under `/World/<prim_prefix>_##` and applies the chosen semantics. `--fallback_count` controls how many fallback references per asset.
 - COCO writer toggles are defined in `standalone_custom_sdg.py` (RGB, tight 2D boxes, semantic and instance masks on by default).
 

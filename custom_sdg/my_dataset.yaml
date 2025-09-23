@@ -1,0 +1,6 @@
+path: /home/tndlux/synthetic_out
+train: images/train
+val: images/val
+test: images/test
+names:
+  - custom

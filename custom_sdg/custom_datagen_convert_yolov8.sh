@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Usage example:
-# CUSTOM_ASSET_DIR=/home/tndlux/Downloads/source ./custom_datagen_convert_yolov8.sh
+# Usage example (single-class):
+# CUSTOM_ASSET_PATH=/home/tndlux/Downloads/source/your_object.usd ./custom_datagen_convert_yolov8.sh
 set -euo pipefail
 IFS=$'\n\t'
 
@@ -25,8 +25,7 @@ FRAMES_TRAIN=${FRAMES_TRAIN:-2500}
 FRAMES_VAL=${FRAMES_VAL:-500}
 FRAMES_TEST=${FRAMES_TEST:-500}
 OUT_ROOT=${OUT_ROOT:-"$HOME/synthetic_out"}
-CUSTOM_ASSET_DIR=${CUSTOM_ASSET_DIR:-"$HOME/Downloads/source"}
-CUSTOM_ASSET_GLOB=${CUSTOM_ASSET_GLOB:-"*.usd"}
+CUSTOM_ASSET_PATH=${CUSTOM_ASSET_PATH:-"$HOME/Downloads/source/TDNS06.usd"}
 CUSTOM_OBJECT_CLASS=${CUSTOM_OBJECT_CLASS:-"custom"}
 CUSTOM_PRIM_PREFIX=${CUSTOM_PRIM_PREFIX:-"custom"}
 FALLBACK_COUNT=${FALLBACK_COUNT:-2}
@@ -100,8 +99,7 @@ run_split() {
     --width "$WIDTH" --height "$HEIGHT" \
     --distractors "$dist" \
     --data_dir "$OUT_ROOT/$split" \
-    --asset_dir "$CUSTOM_ASSET_DIR" \
-    --asset_glob "$CUSTOM_ASSET_GLOB" \
+    --asset_paths "$CUSTOM_ASSET_PATH" \
     --object_class "$CUSTOM_OBJECT_CLASS" \
     --prim_prefix "$CUSTOM_PRIM_PREFIX" \
     --fallback_count "$FALLBACK_COUNT" \

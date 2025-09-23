@@ -27,11 +27,9 @@ Requirements
 
 Custom Objects
 --------------
-You can provide assets in two ways (both support multiple USDs at once):
-- Directory + glob: `--asset_dir /path/to/usds --asset_glob "*.usd"`
-- Explicit list: `--asset_paths /path/a.usd /path/b.usd ...`
-
-Defaults in the provided shell scripts use `CUSTOM_ASSET_DIR=$HOME/Downloads/source` and `CUSTOM_ASSET_GLOB=*.usd`. Drop your USD(s) there, or override via env vars.
+You can provide assets in two ways:
+- Single-class (default scripts): set `CUSTOM_ASSET_PATH` to a single `.usd` file and the scripts pass it via `--asset_paths`. All instances share the same `--object_class`.
+- Multi-asset/manual: run `standalone_custom_sdg.py` with `--asset_paths /path/a.usd /path/b.usd ...` or use `--asset_dir /path --asset_glob "*.usd"` to include multiple assets in one run.
 
 All provided assets are labeled with the same semantic class (default `custom`). You can change the class with `--object_class` (e.g., `--object_class td06` to mirror the old pipeline). Fallback prim paths also use a prefix you can change via `--prim_prefix` (default `custom`).
 
@@ -46,37 +44,37 @@ Tip: with `custom_datagen_convert_yolov8.sh` you can pass multiple material dire
 
 Material discovery and current behavior
 --------------------------------------
-- Discovery: The generator collects local material directories from any `--materials_dir` you provide. If you set only `CUSTOM_ASSET_DIR` (and not `CUSTOM_MATERIALS_DIRS`), the generator still searches `CUSTOM_ASSET_DIR` and `CUSTOM_ASSET_DIR/Materials` automatically. Otherwise, if `CUSTOM_MATERIALS_DIRS` and/or `--materials_dir` is provided, the generator only searches these provided dirs.
+- Discovery: The generator collects local material directories from any `--materials_dir` you provide. If you set only `CUSTOM_ASSET_PATH` (and not `CUSTOM_MATERIALS_DIRS`), the generator searches the directory of that asset and its `Materials/` subfolder automatically. Otherwise, if `CUSTOM_MATERIALS_DIRS` and/or `--materials_dir` is provided, the generator only searches these provided dirs.
 - Import: All `.usd` files found in discovered directories are scanned, and every `UsdShade.Material` prim found is imported. Online MDL materials are also added if reachable.
 - Assignment: One material from the imported set is randomly assigned to each object target and remains fixed during the run.
 
 Example using your Materials folder
 ----------------------------------
-If your materials are under `/home/tndlux/Downloads/source/Materials/`, you can just set `CUSTOM_ASSET_DIR` and the generator will discover and import them automatically:
+If your materials are under `/home/tndlux/Downloads/source/Materials/`, you can just set `CUSTOM_ASSET_PATH=/home/tndlux/Downloads/source/your_object.usd` and the generator will discover and import materials from next to the asset automatically (when no custom materials dirs are provided):
 
 - Convert + splits flow:
-  `CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_sdg/custom_datagen_convert_yolov8.sh`
+  `CUSTOM_ASSET_PATH=$HOME/Downloads/source/your_object.usd ./custom_sdg/custom_datagen_convert_yolov8.sh`
 
 - Three-pass flow (from inside Isaac Sim):
-  `ISAAC_SIM_PATH=/isaac-sim CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_sdg/custom_datagen.sh`
+  `ISAAC_SIM_PATH=/isaac-sim CUSTOM_ASSET_PATH=$HOME/Downloads/source/your_object.usd ./custom_sdg/custom_datagen.sh`
 
-If you have additional material directories outside the assets root, pass them via `CUSTOM_MATERIALS_DIRS` (colon-separated):
-`CUSTOM_MATERIALS_DIRS=/extra/mats1:/extra/mats2 CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_sdg/custom_datagen_convert_yolov8.sh`
+If you want to restrict discovery to explicit material directories, pass them via `CUSTOM_MATERIALS_DIRS` (colon-separated) or `--materials_dir` (one per dir). Only those directories will be searched:
+`CUSTOM_MATERIALS_DIRS=/extra/mats1:/extra/mats2 CUSTOM_ASSET_PATH=$HOME/Downloads/source/your_object.usd ./custom_sdg/custom_datagen_convert_yolov8.sh`
 
 Running Generation
 ------------------
 Option A — Train/Val/Test + COCO→YOLO (recommended):
 - `cd custom_sdg`
 - Activate env: `conda activate yolov8` (required; script checks and exits otherwise)
-- `CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_datagen_convert_yolov8.sh`
+- `CUSTOM_ASSET_PATH=$HOME/Downloads/source/your_object.usd ./custom_datagen_convert_yolov8.sh`
   - Important env vars: `SIM_PY` (Isaac `python.sh`), `OUT_ROOT` (dataset root), `WIDTH/HEIGHT/HEADLESS`, `CUSTOM_*` (assets, class, prefix, materials).
 
 Option B — Three passes (warehouse/additional/none) from inside Isaac Sim:
 - Copy or mount this folder to `${ISAAC_SIM_PATH}/custom_sdg` so that `standalone_custom_sdg.py` is on disk there.
-- Run: `CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_datagen.sh`
+- Run: `CUSTOM_ASSET_PATH=$HOME/Downloads/source/your_object.usd ./custom_datagen.sh`
 
 Direct Python launch (advanced):
-- `bash "$SIM_PY" custom_sdg/standalone_custom_sdg.py --asset_dir "$HOME/Downloads/source" --data_dir /tmp/out --distractors None --object_class custom --prim_prefix custom`
+- `bash "$SIM_PY" custom_sdg/standalone_custom_sdg.py --asset_paths "$HOME/Downloads/source/your_object.usd" --data_dir /tmp/out --distractors None --object_class custom --prim_prefix custom`
 
 Training YOLOv8
 ---------------

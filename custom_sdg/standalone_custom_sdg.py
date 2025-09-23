@@ -291,26 +291,24 @@ TEXTURES = [
 ]
 
 def get_local_material_files():
-    """Return list of local USD material file paths that exist, if any."""
-    names = [
-        "Aluminum_Brushed.Material.usd",
-        "Stainless_Steel_Shiny_Smudged.Material.usd",
-        "Steel_Carbon.Material.usd",
-        "Stainless_Steel_Cast_Shiny.Material.usd",
-    ]
+    """Return list of ALL local USD material file paths discovered under material directories.
+
+    Recursively scans each directory in LOCAL_MATERIAL_DIRS for files ending in `.usd`.
+    Note: actual `UsdShade.Material` prims are validated per-file before import.
+    """
     paths = []
     seen = set()
     for mat_dir in LOCAL_MATERIAL_DIRS:
         if not os.path.isdir(mat_dir):
             continue
-        for n in names:
-            p = os.path.join(mat_dir, n)
-            if os.path.isfile(p) and p not in seen:
-                paths.append(p)
-                seen.add(p)
-            else:
-                # Defer logging until carb is available in main(); keep track of missing
-                pass
+        for root, _dirs, files in os.walk(mat_dir):
+            for fname in files:
+                if not fname.lower().endswith(".usd"):
+                    continue
+                p = os.path.join(root, fname)
+                if p not in seen:
+                    paths.append(p)
+                    seen.add(p)
     return paths
 
 # === Online MDL materials to include as well ===
@@ -531,6 +529,28 @@ def import_usd_material(material_usd_path: str, looks_scope: str = "/World/Looks
     return mat_path
 
 
+def list_material_prims_in_usd(material_usd_path: str) -> list:
+    """Return a list of internal prim paths for all UsdShade.Materials inside the given USD file."""
+    file_url = normalize_asset_path(material_usd_path)
+    try:
+        src = Usd.Stage.Open(file_url)
+    except Exception as exc:
+        carb.log_error(f"[SDG] Cannot open material file: {file_url} ({exc})")
+        return []
+    if not src:
+        return []
+    result = []
+    dp = src.GetDefaultPrim()
+    if dp and dp.IsA(UsdShade.Material):
+        result.append(dp.GetPath().pathString)
+    for p in src.Traverse():
+        if p.IsA(UsdShade.Material):
+            s = p.GetPath().pathString
+            if s not in result:
+                result.append(s)
+    return result
+
+
 def _find_model_bind_targets():
     """
     Find prims to bind the material to.
@@ -614,16 +634,27 @@ def main():
     if LOCAL_MATERIAL_DIRS and not local_material_files:
         locations = ", ".join(LOCAL_MATERIAL_DIRS)
         carb.log_warn(
-            f"[SDG] No expected local material USD files found under {locations}. Skipping local materials."
+            f"[SDG] No local USD files found under {locations}. Skipping local materials."
         )
 
+    # For each USD file, import all UsdShade.Material prims found inside
+    imported_set = set()
     for local_file in local_material_files:
         try:
-            mp = import_usd_material(local_file)
-            if mp:
-                material_prim_paths.append(mp)
+            prims = list_material_prims_in_usd(local_file)
         except Exception as e:
-            carb.log_error(f"[SDG] Error importing local material {local_file}: {e}")
+            carb.log_error(f"[SDG] Error scanning materials in {local_file}: {e}")
+            prims = []
+        if not prims:
+            continue
+        for prim_hint in prims:
+            try:
+                mp = import_usd_material(local_file, prim_hint=prim_hint)
+                if mp and mp not in imported_set:
+                    material_prim_paths.append(mp)
+                    imported_set.add(mp)
+            except Exception as e:
+                carb.log_error(f"[SDG] Error importing material prim {prim_hint} from {local_file}: {e}")
 
     # Create MDL materials from online MDL URLs and add them
     for mdlu in ONLINE_MDL_URLS:

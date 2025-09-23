@@ -153,11 +153,11 @@ def _gather_material_dirs(asset_paths: List[str]) -> List[str]:
 
     if args.materials_dir:
         candidates.extend(args.materials_dir)
-
-    for asset_path in asset_paths:
-        base_dir = os.path.dirname(asset_path)
-        candidates.append(base_dir)
-        candidates.append(os.path.join(base_dir, "Materials"))
+    else:
+        for asset_path in asset_paths:
+            base_dir = os.path.dirname(asset_path)
+            candidates.append(base_dir)
+            candidates.append(os.path.join(base_dir, "Materials"))
 
     for candidate in candidates:
         expanded = _expand_path(candidate)
@@ -511,10 +511,37 @@ def import_usd_material(material_usd_path: str, looks_scope: str = "/World/Looks
             carb.log_error(f"[SDG] No UsdShade.Material found in {file_url}")
             return ""
 
+    def _sanitize_prim_name(name: str) -> str:
+        # Replace invalid characters and ensure a valid USD identifier
+        import re
+        # Replace any non-word character with underscore
+        s = re.sub(r"[^A-Za-z0-9_]", "_", name)
+        # Ensure it does not start with a digit
+        if not s or s[0].isdigit():
+            s = "M_" + s
+        return s
+
     base = os.path.splitext(os.path.basename(material_usd_path))[0]
     if base.endswith(".Material"):
         base = base[:-9]
-    mat_path = f"{looks_scope}/{base}"
+    base = _sanitize_prim_name(base)
+
+    # If we were given a specific prim inside the material file, incorporate it
+    # into the material name to avoid collisions when a single USD contains
+    # multiple UsdShade.Material prims.
+    comp = None
+    if prim_hint:
+        try:
+            comp = os.path.basename(str(prim_hint))
+        except Exception:
+            comp = None
+    if comp:
+        comp = _sanitize_prim_name(comp)
+        mat_name = f"{base}__{comp}"
+    else:
+        mat_name = base
+
+    mat_path = f"{looks_scope}/{mat_name}"
 
     if get_current_stage().GetPrimAtPath(mat_path):
         carb.log_info(f"[SDG] Material {mat_path} already exists, reusing.")

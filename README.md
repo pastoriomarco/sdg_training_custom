@@ -38,7 +38,7 @@ All provided assets are labeled with the same semantic class (default `custom`).
 Materials
 ---------
 The generator can assign materials in two ways:
-- Local USD materials: Provide one or more directories of USD material files via repeated `--materials_dir` flags. The script looks for a few common metal materials by filename: `Aluminum_Brushed.Material.usd`, `Stainless_Steel_Shiny_Smudged.Material.usd`, `Steel_Carbon.Material.usd`, `Stainless_Steel_Cast_Shiny.Material.usd`.
+- Local USD materials: Provide one or more directories of USD material files via repeated `--materials_dir` flags. The generator now scans all `.usd` files (recursively) in each directory and imports every `UsdShade.Material` prim it finds. Material prim names are sanitized (invalid characters replaced, prefixed if starting with a digit) to produce valid stage paths.
 - Online MDL materials: A small set of MDL URLs are created and imported if reachable (requires network access). Both sources are combined, then one material is randomly bound to each model target once (constant during the run).
 
 Tip: with `custom_datagen_convert_yolov8.sh` you can pass multiple material directories as a colon-separated env var:
@@ -46,21 +46,22 @@ Tip: with `custom_datagen_convert_yolov8.sh` you can pass multiple material dire
 
 Material discovery and current behavior
 --------------------------------------
-- Discovery: The generator collects local material directories from any `--materials_dir` you provide, plus from each asset directory and its `Materials` subfolder. For example, if your assets live under `$HOME/Downloads/source`, then `$HOME/Downloads/source/Materials` is discovered automatically.
-- Import (default): Only the four specific USD files listed above are imported from each discovered directory. Other files present in the folder are currently ignored. Online MDL materials are also added if reachable.
+- Discovery: The generator collects local material directories from any `--materials_dir` you provide. If you set only `CUSTOM_ASSET_DIR` (and not `CUSTOM_MATERIALS_DIRS`), the generator still searches `CUSTOM_ASSET_DIR` and `CUSTOM_ASSET_DIR/Materials` automatically. Otherwise, if `CUSTOM_MATERIALS_DIRS` and/or `--materials_dir` is provided, the generator only searches these provided dirs.
+- Import: All `.usd` files found in discovered directories are scanned, and every `UsdShade.Material` prim found is imported. Online MDL materials are also added if reachable.
 - Assignment: One material from the imported set is randomly assigned to each object target and remains fixed during the run.
 
 Example using your Materials folder
 ----------------------------------
-If your materials are under `/home/tndlux/Downloads/source/Materials/`, ensure the script considers that folder and imports the default set:
+If your materials are under `/home/tndlux/Downloads/source/Materials/`, you can just set `CUSTOM_ASSET_DIR` and the generator will discover and import them automatically:
 
 - Convert + splits flow:
-  `CUSTOM_ASSET_DIR=$HOME/Downloads/source CUSTOM_MATERIALS_DIRS=$HOME/Downloads/source/Materials ./custom_sdg/custom_datagen_convert_yolov8.sh`
+  `CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_sdg/custom_datagen_convert_yolov8.sh`
 
 - Three-pass flow (from inside Isaac Sim):
-  `ISAAC_SIM_PATH=/isaac-sim CUSTOM_ASSET_DIR=$HOME/Downloads/source CUSTOM_MATERIALS_DIRS=$HOME/Downloads/source/Materials ./custom_sdg/custom_datagen.sh`
+  `ISAAC_SIM_PATH=/isaac-sim CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_sdg/custom_datagen.sh`
 
-Note: Today only the four named USD material files are imported from each directory. If you want the generator to import and use every `.usd` material it finds (not just those four), tell us and we can extend the implementation to scan and import all UsdShade.Material prims it finds in your Materials folder.
+If you have additional material directories outside the assets root, pass them via `CUSTOM_MATERIALS_DIRS` (colon-separated):
+`CUSTOM_MATERIALS_DIRS=/extra/mats1:/extra/mats2 CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_sdg/custom_datagen_convert_yolov8.sh`
 
 Running Generation
 ------------------

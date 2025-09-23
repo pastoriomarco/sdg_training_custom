@@ -1,29 +1,28 @@
 sdg_training_custom
 ====================
 
-Lightweight pipeline to generate synthetic data in NVIDIA Isaac Sim for any custom object USD, and train a YOLOv8 detector on the output. This repo generalizes an internal td06 workflow to configurable "custom" objects.
+Lightweight pipeline to generate synthetic data in NVIDIA Isaac Sim for any custom object USD, and train a YOLOv8 detector on the output. This repo generalizes an internal workflow to configurable "custom" objects.  
+This pipeline is mainly thought for bin picking applications, thus having various robots as distractors. Customize it to your needs for other applications. 
 
 What It Does
 ------------
 - Spawns one or more custom USD assets, randomizes pose, lighting, and environment textures, and optionally adds distractors.
 - Writes COCO-format annotations (2D bboxes, semantic and instance masks optional).
-- Optionally organizes images/labels for YOLO and starts a YOLOv8 training run.
+- Organizes images/labels for YOLO and starts a YOLOv8 training run.
 
 Layout
 ------
 - `custom_sdg/standalone_custom_sdg.py` — Isaac Sim dataset generator (Replicator-based, configurable).
-- `custom_sdg/custom_datagen.sh` — Runs 3 generation passes (warehouse, additional, none). Assumes script is available inside the Isaac Sim install; see below.
 - `custom_sdg/custom_datagen_convert_yolov8.sh` — Runs 3 generation passes for train/val/test splits with selectable distractors and converts COCO → YOLO.
+- `custom_sdg/custom_datagen.sh` — Runs 3 generation passes (warehouse, additional, none). Assumes script is available inside the Isaac Sim install; see below.
 - `custom_sdg/custom_train_yolov8.sh` — Trains YOLOv8 on the generated dataset.
 - `custom_sdg/coco2yolo.py` — COCO → YOLO labels converter.
-- `custom_sdg/my_dataset.yaml` — YOLO dataset config (class name `custom`).
+- `custom_sdg/my_dataset.yaml` — YOLO dataset config (default class name `custom`).
 
 Requirements
 ------------
-- Isaac Sim 5.0 (with Replicator) and access to the Isaac assets server (Nucleus) for environments.
-- For `custom_datagen_convert_yolov8.sh` and training: a Python environment with the packages from `src/sdg_training_custom/custom_sdg/yolov8_setup.md`.
-  - Scripts validate required packages at runtime (env name is not enforced). If something is missing, they point you to the setup guide.
-  - Recommended: use a Conda env (e.g., `yolov8`) and follow the setup guide: `src/sdg_training_custom/custom_sdg/yolov8_setup.md` (this repo).
+- Isaac Sim 5.0 (with Replicator) and access to the Isaac assets server (Nucleus) for environments. I prefer building Isaac SIM 5.0 from source with the instructions provided in the [IsaacSim official GitHub repo](https://github.com/isaac-sim/IsaacSim).
+- For `custom_datagen_convert_yolov8.sh` and training: follow [yolov8_setup.md](https://github.com/pastoriomarco/sdg_training_custom/blob/main/custom_sdg/yolov8_setup.md) to set up `yolov8` Python environment with Conda.
 
 Custom Objects
 --------------
@@ -34,6 +33,7 @@ You can provide assets in two ways:
 - Direct Python: pass repeated args; single or multiple values work the same way:
   - `--asset_paths /a.usd /b.usd --object_classes cup bottle`
   - `--asset_paths /a.usd --object_classes custom`
+- Objects must be in `.usd` format: check the scale of your objects!
 
 Important: When more than one asset is provided, the number of classes must equal the number of assets (strict 1:1). The generator enforces this and will exit with an error if they mismatch. The order defines class ids (stable across splits) and is used to build COCO categories and the dataset YAML.
 

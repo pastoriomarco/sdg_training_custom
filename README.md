@@ -44,6 +44,24 @@ The generator can assign materials in two ways:
 Tip: with `custom_datagen_convert_yolov8.sh` you can pass multiple material directories as a colon-separated env var:
 `CUSTOM_MATERIALS_DIRS=/dir/A:/dir/B ./custom_sdg/custom_datagen_convert_yolov8.sh`
 
+Material discovery and current behavior
+--------------------------------------
+- Discovery: The generator collects local material directories from any `--materials_dir` you provide, plus from each asset directory and its `Materials` subfolder. For example, if your assets live under `$HOME/Downloads/source`, then `$HOME/Downloads/source/Materials` is discovered automatically.
+- Import (default): Only the four specific USD files listed above are imported from each discovered directory. Other files present in the folder are currently ignored. Online MDL materials are also added if reachable.
+- Assignment: One material from the imported set is randomly assigned to each object target and remains fixed during the run.
+
+Example using your Materials folder
+----------------------------------
+If your materials are under `/home/tndlux/Downloads/source/Materials/`, ensure the script considers that folder and imports the default set:
+
+- Convert + splits flow:
+  `CUSTOM_ASSET_DIR=$HOME/Downloads/source CUSTOM_MATERIALS_DIRS=$HOME/Downloads/source/Materials ./custom_sdg/custom_datagen_convert_yolov8.sh`
+
+- Three-pass flow (from inside Isaac Sim):
+  `ISAAC_SIM_PATH=/isaac-sim CUSTOM_ASSET_DIR=$HOME/Downloads/source CUSTOM_MATERIALS_DIRS=$HOME/Downloads/source/Materials ./custom_sdg/custom_datagen.sh`
+
+Note: Today only the four named USD material files are imported from each directory. If you want the generator to import and use every `.usd` material it finds (not just those four), tell us and we can extend the implementation to scan and import all UsdShade.Material prims it finds in your Materials folder.
+
 Running Generation
 ------------------
 Option A — Train/Val/Test + COCO→YOLO (recommended):

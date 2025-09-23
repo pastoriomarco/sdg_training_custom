@@ -31,6 +31,10 @@ CUSTOM_OBJECT_CLASS=${CUSTOM_OBJECT_CLASS:-"custom"}
 CUSTOM_PRIM_PREFIX=${CUSTOM_PRIM_PREFIX:-"custom"}
 FALLBACK_COUNT=${FALLBACK_COUNT:-2}
 CUSTOM_MATERIALS_DIRS=${CUSTOM_MATERIALS_DIRS:-""}
+DISTRACTORS=${DISTRACTORS:-"warehouse"}
+DISTRACTORS_TRAIN=${DISTRACTORS_TRAIN:-"$DISTRACTORS"}
+DISTRACTORS_VAL=${DISTRACTORS_VAL:-"$DISTRACTORS"}
+DISTRACTORS_TEST=${DISTRACTORS_TEST:-"$DISTRACTORS"}
 
 # Resolve paths relative to this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
@@ -81,6 +85,7 @@ mkdir -p "$OUT_ROOT"
 run_split() {
   local split=$1
   local frames=$2
+  local dist=${3:-"$DISTRACTORS"}
   local material_args=()
   if [[ -n "$CUSTOM_MATERIALS_DIRS" ]]; then
     IFS=':' read -r -a mats <<< "$CUSTOM_MATERIALS_DIRS"
@@ -93,7 +98,7 @@ run_split() {
     --headless "$HEADLESS" \
     --num_frames "$frames" \
     --width "$WIDTH" --height "$HEIGHT" \
-    --distractors None \
+    --distractors "$dist" \
     --data_dir "$OUT_ROOT/$split" \
     --asset_dir "$CUSTOM_ASSET_DIR" \
     --asset_glob "$CUSTOM_ASSET_GLOB" \
@@ -103,9 +108,9 @@ run_split() {
     "${material_args[@]}"
 }
 
-run_split train "$FRAMES_TRAIN"
-run_split val   "$FRAMES_VAL"
-run_split test  "$FRAMES_TEST"
+run_split train "$FRAMES_TRAIN" "$DISTRACTORS_TRAIN"
+run_split val   "$FRAMES_VAL"   "$DISTRACTORS_VAL"
+run_split test  "$FRAMES_TEST"  "$DISTRACTORS_TEST"
 
 # Prepare YOLO folder structure and collect images
 mkdir -p "$OUT_ROOT/images/train" "$OUT_ROOT/images/val" "$OUT_ROOT/images/test"
@@ -135,4 +140,3 @@ else
 fi
 
 echo "Done. Outputs in $OUT_ROOT"
-

@@ -13,15 +13,17 @@ Layout
 ------
 - `custom_sdg/standalone_custom_sdg.py` — Isaac Sim dataset generator (Replicator-based, configurable).
 - `custom_sdg/custom_datagen.sh` — Runs 3 generation passes (warehouse, additional, none). Assumes script is available inside the Isaac Sim install; see below.
-- `custom_sdg/custom_datagen_convert_yolov8.sh` — Generates train/val/test splits and converts COCO → YOLO.
+- `custom_sdg/custom_datagen_convert_yolov8.sh` — Same as custom_datagen.sh but also generates train/val/test splits and converts COCO → YOLO.
 - `custom_sdg/custom_train_yolov8.sh` — Trains YOLOv8 on the generated dataset.
 - `custom_sdg/coco2yolo.py` — COCO → YOLO labels converter.
 - `custom_sdg/my_dataset.yaml` — YOLO dataset config (class name `custom`).
 
 Requirements
 ------------
-- Isaac Sim 2023.1+ (with Replicator) and access to the Isaac assets server (Nucleus) for environments.
-- For `custom_datagen_convert_yolov8.sh` and training: a Conda env named `yolov8` with `ultralytics` installed (see `custom_sdg/yolov8_setup.md`).
+- Isaac Sim 5.0 (with Replicator) and access to the Isaac assets server (Nucleus) for environments.
+- For `custom_datagen_convert_yolov8.sh` and training: a Conda env named `yolov8` with `ultralytics` installed.
+  - Both scripts check `CONDA_DEFAULT_ENV == yolov8` and exit if not active.
+  - Follow the setup guide: `src/sdg_training_custom/custom_sdg/yolov8_setup.md` (this repo).
 
 Custom Objects
 --------------
@@ -46,6 +48,7 @@ Running Generation
 ------------------
 Option A — Train/Val/Test + COCO→YOLO (recommended):
 - `cd custom_sdg`
+- Activate env: `conda activate yolov8` (required; script checks and exits otherwise)
 - `CUSTOM_ASSET_DIR=$HOME/Downloads/source ./custom_datagen_convert_yolov8.sh`
   - Important env vars: `SIM_PY` (Isaac `python.sh`), `OUT_ROOT` (dataset root), `WIDTH/HEIGHT/HEADLESS`, `CUSTOM_*` (assets, class, prefix, materials).
 
@@ -58,6 +61,7 @@ Direct Python launch (advanced):
 
 Training YOLOv8
 ---------------
+- Activate env: `conda activate yolov8` (required; script checks and exits otherwise)
 - After generation/conversion: `OUT_ROOT=$HOME/synthetic_out RUN_NAME=yolov8s_custom ./custom_sdg/custom_train_yolov8.sh`
 - The script auto-patches `my_dataset.yaml` to point at `OUT_ROOT` using a temporary file if needed.
 
@@ -73,4 +77,3 @@ Troubleshooting
 - Ensure Isaac Sim’s Nucleus asset server is reachable; the environment USD (`/Isaac/Environments/Simple_Warehouse/warehouse.usd`) loads from there.
 - If MDL URLs are blocked (no network), only local USD materials will be used.
 - If `custom_datagen.sh` can’t find the script, make sure `custom_sdg` is physically present under `${ISAAC_SIM_PATH}` or use the convert script that resolves paths locally.
-

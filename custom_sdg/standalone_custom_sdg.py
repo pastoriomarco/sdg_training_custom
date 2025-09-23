@@ -205,7 +205,7 @@ rep.settings.carb_settings("/omni/replicator/RTSubframes", 4)
 def get_custom_asset_paths():
     return CUSTOM_ASSET_PATHS
 
-# Distractors (unchanged)
+# Distractors (BIN PICKING VERSION)
 DISTRACTORS_WAREHOUSE = 2 * [
     "/Isaac/Robots/UniversalRobots/ur3e/ur3e.usd",
     "/Isaac/Robots/UniversalRobots/ur5e/ur5e.usd",

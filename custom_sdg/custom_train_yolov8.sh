@@ -12,7 +12,7 @@ OUT_ROOT=${OUT_ROOT:-"$HOME/synthetic_out"}
 # Optional override of dataset yaml; if not set, auto-use $OUT_ROOT/my_dataset.yaml when present
 DATA_YAML_OVERRIDE=${DATA_YAML:-""}
 MODEL=${MODEL:-"yolov8s.pt"}
-EPOCHS=${EPOCHS:-100}
+EPOCHS=${EPOCHS:-50}
 BATCH=${BATCH:-16}
 IMG_SIZE=${IMG_SIZE:-640}
 DEVICE=${DEVICE:-0}

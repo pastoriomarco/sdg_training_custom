@@ -93,6 +93,16 @@ parser.add_argument(
     help="Semantic class label for the custom object.",
 )
 parser.add_argument(
+    "--object_classes",
+    type=str,
+    nargs="+",
+    default=None,
+    help=(
+        "Optional multi-class mode: one class per asset (order must match --asset_paths or the files collected by --asset_dir/--asset_glob). "
+        "If more than one asset is provided, the number of classes must equal the number of assets."
+    ),
+)
+parser.add_argument(
     "--prim_prefix",
     type=str,
     default="custom",
@@ -173,6 +183,31 @@ LOCAL_MATERIAL_DIRS = _gather_material_dirs(CUSTOM_ASSET_PATHS)
 OBJECT_CLASS = args.object_class
 OBJECT_PRIM_PREFIX = args.prim_prefix
 FALLBACK_COUNT = max(1, args.fallback_count)
+
+# Resolve per-asset classes with strict validation when multi-asset
+if len(CUSTOM_ASSET_PATHS) > 1:
+    if not args.object_classes:
+        raise SystemExit(
+            "Multiple assets provided but --object_classes not set. "
+            "Provide exactly one class name per asset."
+        )
+    if len(args.object_classes) != len(CUSTOM_ASSET_PATHS):
+        raise SystemExit(
+            f"Mismatch: {len(CUSTOM_ASSET_PATHS)} asset(s) but {len(args.object_classes)} class(es). "
+            "Provide exactly one class per asset."
+        )
+    ASSET_CLASSES = list(args.object_classes)
+else:
+    # Single asset path: default to --object_class (backward compatible)
+    ASSET_CLASSES = [OBJECT_CLASS]
+
+# Unique classes in first-seen order (stable ids across splits)
+UNIQUE_CLASSES = []
+_seen = set()
+for c in ASSET_CLASSES:
+    if c not in _seen:
+        UNIQUE_CLASSES.append(c)
+        _seen.add(c)
 
 # App config
 CONFIG = {
@@ -394,9 +429,11 @@ def add_custom_objects():
         if not os.path.isfile(ap_fs):
             carb.log_warn(f"[SDG] Model USD not found at {ap_fs}. The object may fail to spawn.")
 
-    rep_obj_list = [
-        rep.create.from_usd(p, semantics=[("class", OBJECT_CLASS)], count=25) for p in asset_paths
-    ]
+    rep_obj_list = []
+    for p, cls in zip(asset_paths, ASSET_CLASSES):
+        rep_obj_list.append(
+            rep.create.from_usd(p, semantics=[("class", cls)], count=25)
+        )
     rep_custom_group = rep.create.group(rep_obj_list)
 
     for _ in range(10):
@@ -413,17 +450,17 @@ def add_custom_objects():
         return rep_custom_group
 
     carb.log_warn("[SDG] Replicator instances not found; falling back to USD references under /World.")
-    total = max(1, FALLBACK_COUNT * len(asset_paths))
-    src = asset_paths[0]
-    for i in range(total):
-        path = f"/World/{OBJECT_PRIM_PREFIX}_{i:02d}"
-        xform = UsdGeom.Xform.Define(stage, Sdf.Path(path))
-        prim = xform.GetPrim()
-        prim.GetReferences().ClearReferences()
-        prim.GetReferences().AddReference(src)
-        sem = Semantics.SemanticsAPI.Apply(prim, f"{OBJECT_CLASS}_sem")
-        sem.GetSemanticTypeAttr().Set("class")
-        sem.GetSemanticDataAttr().Set(OBJECT_CLASS)
+    # For fallback, reference each asset FALLBACK_COUNT times and tag with its class
+    for aidx, (src, cls) in enumerate(zip(asset_paths, ASSET_CLASSES)):
+        for k in range(FALLBACK_COUNT):
+            path = f"/World/{OBJECT_PRIM_PREFIX}_{aidx:02d}_{k:02d}"
+            xform = UsdGeom.Xform.Define(stage, Sdf.Path(path))
+            prim = xform.GetPrim()
+            prim.GetReferences().ClearReferences()
+            prim.GetReferences().AddReference(src)
+            sem = Semantics.SemanticsAPI.Apply(prim, f"{cls}_sem")
+            sem.GetSemanticTypeAttr().Set("class")
+            sem.GetSemanticDataAttr().Set(cls)
 
     for _ in range(10):
         simulation_app.update()
@@ -646,8 +683,8 @@ def main():
     rep_custom_group = add_custom_objects()
     rep_distractor_group = add_distractors(distractor_type=args.distractors)
 
-    # Keep only the requested object semantics
-    update_semantics(stage=stage, keep_semantics=[OBJECT_CLASS])
+    # Keep only the requested object semantics (all unique classes)
+    update_semantics(stage=stage, keep_semantics=UNIQUE_CLASSES)
 
     # Camera
     cam = rep.create.camera(clipping_range=(0.1, 1_000_000))
@@ -763,9 +800,10 @@ def main():
     output_directory = args.data_dir
     print("Outputting data to ", output_directory)
 
-    # COCO category mapping — ids should be unique & positive
+    # COCO categories: build from unique classes with stable ids 1..N
     coco_categories = {
-        OBJECT_CLASS: {"id": 1, "name": OBJECT_CLASS, "color": [255, 0, 0]}
+        cls: {"id": i + 1, "name": cls, "color": [255, 0, 0]}
+        for i, cls in enumerate(UNIQUE_CLASSES)
     }
 
     writer.initialize(

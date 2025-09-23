@@ -9,6 +9,8 @@ IFS=$'\n\t'
 
 # Defaults (override via env vars)
 OUT_ROOT=${OUT_ROOT:-"$HOME/synthetic_out"}
+# Optional override of dataset yaml; if not set, auto-use $OUT_ROOT/my_dataset.yaml when present
+DATA_YAML_OVERRIDE=${DATA_YAML:-""}
 MODEL=${MODEL:-"yolov8s.pt"}
 EPOCHS=${EPOCHS:-100}
 BATCH=${BATCH:-16}
@@ -20,19 +22,61 @@ RUN_NAME=${RUN_NAME:-"yolov8s_custom"}
 
 # Resolve repo-relative paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-DATA_YAML="$SCRIPT_DIR/my_dataset.yaml"
+DEFAULT_DATA_YAML="$SCRIPT_DIR/my_dataset.yaml"
 
-# 1) Ensure we're in the correct conda environment
-if [[ "${CONDA_DEFAULT_ENV:-}" != "yolov8" ]]; then
-  echo "Error: Please activate the 'yolov8' conda environment first." >&2
-  echo "Hint: conda activate yolov8" >&2
+# 1) Validate required Python packages (env-agnostic). See yolov8_setup.md for installs.
+REQ_DOC="$SCRIPT_DIR/yolov8_setup.md"
+PY_BIN=${PYTHON_BIN:-python}
+if ! command -v "$PY_BIN" >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1; then
+    PY_BIN=python3
+  else
+    echo "Error: Python interpreter not found (looked for 'python' or 'python3'). See $REQ_DOC." >&2
+    exit 1
+  fi
+fi
+PYCHK=$("$PY_BIN" - <<'PY'
+import importlib, sys, json
+mods = ['torch','ultralytics','onnx','onnxruntime','cv2','pycocotools','matplotlib','tqdm']
+missing=[]; info={}
+for m in mods:
+    try:
+        mod=importlib.import_module(m)
+        v=getattr(mod,'__version__', None)
+        info[m]=str(v) if v is not None else 'unknown'
+    except Exception:
+        missing.append(m)
+ok = not missing
+cuda_info = {}
+try:
+    import torch
+    cuda_info = {
+        'cuda_available': bool(torch.cuda.is_available()),
+        'cuda_runtime': getattr(torch.version, 'cuda', None),
+        'torch_version': getattr(torch, '__version__', 'unknown'),
+    }
+except Exception:
+    pass
+print(json.dumps({'ok': ok, 'missing': missing, 'info': info, 'cuda': cuda_info}))
+sys.exit(0 if ok else 2)
+PY
+)
+if [[ $? -ne 0 ]]; then
+  echo "Error: Required Python packages are missing: $(echo "$PYCHK" | sed -n 's/.*\"missing\":\s*\[\([^]]*\)\].*/\1/p')" >&2
+  echo "See $REQ_DOC to install the expected versions." >&2
   exit 1
 fi
 
-# 2) Ensure 'yolo' CLI is available
+# 2) Ensure 'yolo' CLI (or fallback) is available
+YOLO_CMD=(yolo)
 if ! command -v yolo >/dev/null 2>&1; then
-  echo "Error: 'yolo' CLI not found in PATH. Install ultralytics in the 'yolov8' env." >&2
-  exit 1
+  # Fallback to module invocation if CLI shim isn't on PATH
+  if python -m ultralytics --help >/dev/null 2>&1; then
+    YOLO_CMD=(python -m ultralytics)
+  else
+    echo "Error: 'yolo' CLI not found, and 'python -m ultralytics' not available. See $REQ_DOC." >&2
+    exit 1
+  fi
 fi
 
 # 3) Validate dataset location
@@ -41,26 +85,77 @@ if [[ ! -d "$OUT_ROOT/images/train" ]] || [[ ! -d "$OUT_ROOT/labels/train" ]]; t
   echo "Run custom_datagen_convert_yolov8.sh first or set OUT_ROOT to your dataset root." >&2
 fi
 
-# 4) Build a temporary data YAML if the existing one points elsewhere
-TMP_DATA_YAML=""
-if [[ -f "$DATA_YAML" ]]; then
-  # Extract current path value (if any)
-  CURRENT_PATH=$(grep -E '^path:' "$DATA_YAML" | awk '{print $2}' || true)
-  if [[ "$CURRENT_PATH" != "$OUT_ROOT" ]]; then
-    TMP_DATA_YAML=$(mktemp /tmp/custom_yolo_data.XXXXXX.yaml)
-    echo "Creating temp data YAML at $TMP_DATA_YAML with path: $OUT_ROOT"
-    {
-      echo "path: $OUT_ROOT"
-      # Preserve the rest of the YAML minus an existing 'path:' line
-      grep -v -E '^path:' "$DATA_YAML"
-    } > "$TMP_DATA_YAML"
-  fi
+# 4) Choose dataset YAML and normalize its path: prefer override > OUT_ROOT/my_dataset.yaml > default
+if [[ -n "$DATA_YAML_OVERRIDE" ]]; then
+  USE_DATA_YAML="$DATA_YAML_OVERRIDE"
+elif [[ -f "$OUT_ROOT/my_dataset.yaml" ]]; then
+  USE_DATA_YAML="$OUT_ROOT/my_dataset.yaml"
 else
-  echo "Error: $DATA_YAML not found." >&2
+  USE_DATA_YAML="$DEFAULT_DATA_YAML"
+fi
+
+if [[ ! -f "$USE_DATA_YAML" ]]; then
+  echo "Error: dataset YAML not found at $USE_DATA_YAML" >&2
   exit 1
 fi
 
-USE_DATA_YAML=${TMP_DATA_YAML:-$DATA_YAML}
+# If the chosen YAML doesn't point at OUT_ROOT, make a temp copy with path patched
+TMP_DATA_YAML=""
+CURRENT_PATH=$(grep -E '^path:' "$USE_DATA_YAML" | awk '{print $2}' || true)
+if [[ "$CURRENT_PATH" != "$OUT_ROOT" ]]; then
+  TMP_DATA_YAML=$(mktemp /tmp/custom_yolo_data.XXXXXX.yaml)
+  echo "Creating temp data YAML at $TMP_DATA_YAML with path: $OUT_ROOT"
+  {
+    echo "path: $OUT_ROOT"
+    grep -v -E '^path:' "$USE_DATA_YAML"
+  } > "$TMP_DATA_YAML"
+  USE_DATA_YAML="$TMP_DATA_YAML"
+fi
+
+# 4b) Validate classes: if convert script provided meta, enforce counts
+CLASSES_META="$OUT_ROOT/classes_unique.txt"
+ASSETS_META="$OUT_ROOT/assets_used.txt"
+CLASSES_PER_ASSET_META="$OUT_ROOT/classes_per_asset.txt"
+if [[ -f "$CLASSES_META" ]]; then
+  EXPECTED_N=$(wc -l < "$CLASSES_META" | tr -d ' \t')
+  if [[ -f "$ASSETS_META" && -f "$CLASSES_PER_ASSET_META" ]]; then
+    NA=$(wc -l < "$ASSETS_META" | tr -d ' \t')
+    NC=$(wc -l < "$CLASSES_PER_ASSET_META" | tr -d ' \t')
+    if [[ "$NA" != "$NC" ]]; then
+      echo "Error: Assets/classes mismatch from conversion meta: assets=$NA, classes=$NC (must be equal)." >&2
+      exit 1
+    fi
+  fi
+  # Count names in YAML (list style under 'names:')
+  YAML_N=$(awk '
+    $1=="names:" {inlist=1; next}
+    inlist && $1 ~ /^-$/ {n++; next}
+    inlist && $1 ~ /^-/ {n++; next}
+    inlist && $1 ~ /^[^#-]/ {inlist=0}
+    END{print n+0}
+  ' "$USE_DATA_YAML")
+  if [[ "$YAML_N" != "$EXPECTED_N" ]]; then
+    echo "Error: Class count mismatch. YAML has $YAML_N names, expected $EXPECTED_N (from $CLASSES_META)." >&2
+    exit 1
+  fi
+fi
+
+# 4c) Optional: verify label indices are within range
+if [[ "${ENFORCE_LABELS:-1}" != "0" ]]; then
+  if [[ -n "${EXPECTED_N:-}" ]]; then
+    MAX_ID=-1
+    while IFS= read -r -d '' f; do
+      # Skip empty files
+      if [[ ! -s "$f" ]]; then continue; fi
+      m=$(awk '{if(NF>0){cid=$1+0; if(cid>m)m=cid}} END{print (m=="")? -1 : m}' "$f")
+      if (( m > MAX_ID )); then MAX_ID=$m; fi
+    done < <(find "$OUT_ROOT/labels" -type f -name '*.txt' -print0 2>/dev/null)
+    if (( MAX_ID >= EXPECTED_N )); then
+      echo "Error: Found label class id $MAX_ID but expected < $EXPECTED_N based on classes meta." >&2
+      exit 1
+    fi
+  fi
+fi
 
 # 5) Define YOLO output project folder inside OUT_ROOT
 PROJECT_DIR="$OUT_ROOT/$PROJECT_NAME"
@@ -77,7 +172,7 @@ echo " - workers: $WORKERS"
 echo " - project: $PROJECT_DIR"
 echo " - name:    $RUN_NAME"
 
-yolo detect train \
+"${YOLO_CMD[@]}" detect train \
   model="$MODEL" \
   data="$USE_DATA_YAML" \
   imgsz="$IMG_SIZE" \

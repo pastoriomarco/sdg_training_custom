@@ -13,6 +13,7 @@ IFS=$'\n\t'
 if [[ "${CONDA_DEFAULT_ENV:-}" != "yolov8" ]]; then
   echo "Error: Please activate the 'yolov8' conda environment before running this script." >&2
   echo "Hint: conda activate yolov8" >&2
+  echo "Refer to /custom_sdg/yolov8_setup.md for all requirements" >&2
   exit 1
 fi
 
@@ -25,8 +26,9 @@ FRAMES_TRAIN=${FRAMES_TRAIN:-2500}
 FRAMES_VAL=${FRAMES_VAL:-500}
 FRAMES_TEST=${FRAMES_TEST:-500}
 OUT_ROOT=${OUT_ROOT:-"$HOME/synthetic_out"}
-CUSTOM_ASSET_PATH=${CUSTOM_ASSET_PATH:-"$HOME/Downloads/source/TDNS06.usd"}
-CUSTOM_OBJECT_CLASS=${CUSTOM_OBJECT_CLASS:-"custom"}
+# Multi-asset, multi-class (colon-separated lists). Single-value works too.
+CUSTOM_ASSET_PATHS=${CUSTOM_ASSET_PATHS:-"$HOME/Downloads/source/TDNS06.usd"}
+CUSTOM_OBJECT_CLASSES=${CUSTOM_OBJECT_CLASSES:-"custom"}
 CUSTOM_PRIM_PREFIX=${CUSTOM_PRIM_PREFIX:-"custom"}
 FALLBACK_COUNT=${FALLBACK_COUNT:-2}
 CUSTOM_MATERIALS_DIRS=${CUSTOM_MATERIALS_DIRS:-"$HOME/Downloads/source/Materials"}
@@ -52,6 +54,47 @@ if [[ ! -f "$GEN_PY" ]]; then
 fi
 
 echo "Output root: $OUT_ROOT"
+
+# Collect assets and classes
+ASSETS=()
+CLASSES=()
+
+if [[ -n "$CUSTOM_ASSET_PATHS" ]]; then
+  IFS=':' read -r -a ASSETS <<< "$CUSTOM_ASSET_PATHS"
+else
+  echo "Error: CUSTOM_ASSET_PATHS is required (colon-separated; single value allowed)." >&2
+  exit 1
+fi
+
+if [[ -n "$CUSTOM_OBJECT_CLASSES" ]]; then
+  IFS=':' read -r -a CLASSES <<< "$CUSTOM_OBJECT_CLASSES"
+else
+  # Default single-class for single-asset only
+  if [[ ${#ASSETS[@]} -eq 1 ]]; then
+    CLASSES=("custom")
+  else
+    echo "Error: Multiple assets provided but CUSTOM_OBJECT_CLASSES not set." >&2
+    echo "Provide colon-separated classes, one per asset (order must match)." >&2
+    exit 1
+  fi
+fi
+
+# Enforce equal counts when multi-asset
+if [[ ${#ASSETS[@]} -ne ${#CLASSES[@]} ]]; then
+  echo "Error: Mismatch between assets (${#ASSETS[@]}) and classes (${#CLASSES[@]})." >&2
+  echo "Provide exactly one class per asset using CUSTOM_OBJECT_CLASSES (colon-separated)." >&2
+  exit 1
+fi
+
+# Build ordered-unique classes (stable id mapping across splits)
+UNIQUE_CLASSES=()
+declare -A _seen
+for c in "${CLASSES[@]}"; do
+  if [[ -z "${_seen[$c]:-}" ]]; then
+    UNIQUE_CLASSES+=("$c")
+    _seen[$c]=1
+  fi
+done
 
 # Handle existing output root: prompt to delete for a clean reset
 if [[ -d "$OUT_ROOT" ]]; then
@@ -86,21 +129,26 @@ run_split() {
   local frames=$2
   local dist=${3:-"$DISTRACTORS"}
   local material_args=()
+  local asset_args=(--asset_paths)
+  local class_args=(--object_classes)
   if [[ -n "$CUSTOM_MATERIALS_DIRS" ]]; then
     IFS=':' read -r -a mats <<< "$CUSTOM_MATERIALS_DIRS"
     for dir in "${mats[@]}"; do
       [[ -n "$dir" ]] && material_args+=(--materials_dir "$dir")
     done
   fi
+  for a in "${ASSETS[@]}"; do asset_args+=("$a"); done
+  for c in "${CLASSES[@]}"; do class_args+=("$c"); done
   echo "Generating $split with $frames frames..."
-  bash "$SIM_PY" "$GEN_PY" \
+  env -u CONDA_DEFAULT_ENV -u CONDA_PREFIX -u CONDA_PYTHON_EXE -u CONDA_SHLVL -u _CE_CONDA -u _CE_M \
+    bash "$SIM_PY" "$GEN_PY" \
     --headless "$HEADLESS" \
     --num_frames "$frames" \
     --width "$WIDTH" --height "$HEIGHT" \
     --distractors "$dist" \
     --data_dir "$OUT_ROOT/$split" \
-    --asset_paths "$CUSTOM_ASSET_PATH" \
-    --object_class "$CUSTOM_OBJECT_CLASS" \
+    "${asset_args[@]}" \
+    "${class_args[@]}" \
     --prim_prefix "$CUSTOM_PRIM_PREFIX" \
     --fallback_count "$FALLBACK_COUNT" \
     "${material_args[@]}"
@@ -136,5 +184,24 @@ if [[ -f "$COCO2YOLO_PY" ]]; then
 else
   echo "Warning: $COCO2YOLO_PY not found; skipping COCO->YOLO conversion" >&2
 fi
+
+# Emit dataset YAML with multi-class names (stable order)
+DATA_YAML_OUT="$OUT_ROOT/my_dataset.yaml"
+echo "Writing dataset YAML to $DATA_YAML_OUT"
+{
+  echo "path: $OUT_ROOT"
+  echo "train: images/train"
+  echo "val: images/val"
+  echo "test: images/test"
+  echo "names:"
+  for c in "${UNIQUE_CLASSES[@]}"; do
+    echo "  - $c"
+  done
+} > "$DATA_YAML_OUT"
+
+# Persist meta for training-time validation
+printf "%s\n" "${ASSETS[@]}" > "$OUT_ROOT/assets_used.txt"
+printf "%s\n" "${CLASSES[@]}" > "$OUT_ROOT/classes_per_asset.txt"
+printf "%s\n" "${UNIQUE_CLASSES[@]}" > "$OUT_ROOT/classes_unique.txt"
 
 echo "Done. Outputs in $OUT_ROOT"

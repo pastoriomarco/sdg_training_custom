@@ -2,7 +2,24 @@
 # Usage example:
 # OUT_ROOT=$HOME/synthetic_out RUN_NAME=yolov8s_custom ./custom_train_yolov8.sh
 set -euo pipefail
+set -o errtrace
 IFS=$'\n\t'
+
+# Optional verbose tracing: DEBUG=1 ./custom_train_yolov8.sh
+if [[ "${DEBUG:-0}" == "1" ]]; then
+  set -x
+fi
+
+# Ensure correct conda environment is active for the conversion step
+if [[ "${CONDA_DEFAULT_ENV:-}" != "yolov8" ]]; then
+  echo "Error: Please activate the 'yolov8' conda environment before running this script." >&2
+  echo "Hint: conda activate yolov8" >&2
+  echo "Refer to /custom_sdg/yolov8_setup.md for all requirements" >&2
+  exit 1
+fi
+
+# Helpful error message on unexpected failures
+trap 'rc=$?; echo "Error: script failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
 
 # Train YOLOv8 using the dataset produced by custom_datagen_convert_yolov8.sh
 # Requires the 'yolov8' conda environment as described in yolov8_setup.md
@@ -24,6 +41,12 @@ RUN_NAME=${RUN_NAME:-"yolov8s_custom"}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 DEFAULT_DATA_YAML="$SCRIPT_DIR/my_dataset.yaml"
 
+# Announce start and key params early
+echo "custom_train_yolov8.sh: starting"
+echo " - OUT_ROOT: ${OUT_ROOT:-}"
+echo " - DATA_YAML override: ${DATA_YAML_OVERRIDE:-}"
+echo " - MODEL: ${MODEL:-} | EPOCHS: ${EPOCHS:-} | BATCH: ${BATCH:-} | IMG_SIZE: ${IMG_SIZE:-} | DEVICE: ${DEVICE:-} | WORKERS: ${WORKERS:-}"
+
 # 1) Validate required Python packages (env-agnostic). See yolov8_setup.md for installs.
 REQ_DOC="$SCRIPT_DIR/yolov8_setup.md"
 PY_BIN=${PYTHON_BIN:-python}
@@ -35,7 +58,8 @@ if ! command -v "$PY_BIN" >/dev/null 2>&1; then
     exit 1
   fi
 fi
-PYCHK=$("$PY_BIN" - <<'PY'
+PYCHK=""
+if ! PYCHK=$("$PY_BIN" - <<'PY'
 import importlib, sys, json
 mods = ['torch','ultralytics','onnx','onnxruntime','cv2','pycocotools','matplotlib','tqdm']
 missing=[]; info={}
@@ -60,12 +84,14 @@ except Exception:
 print(json.dumps({'ok': ok, 'missing': missing, 'info': info, 'cuda': cuda_info}))
 sys.exit(0 if ok else 2)
 PY
-)
-if [[ $? -ne 0 ]]; then
+); then
+  # Try to extract missing list from the JSON (best-effort)
   echo "Error: Required Python packages are missing: $(echo "$PYCHK" | sed -n 's/.*\"missing\":\s*\[\([^]]*\)\].*/\1/p')" >&2
   echo "See $REQ_DOC to install the expected versions." >&2
   exit 1
 fi
+
+
 
 # 2) Ensure 'yolo' CLI (or fallback) is available
 YOLO_CMD=(yolo)
@@ -103,7 +129,7 @@ fi
 TMP_DATA_YAML=""
 CURRENT_PATH=$(grep -E '^path:' "$USE_DATA_YAML" | awk '{print $2}' || true)
 if [[ "$CURRENT_PATH" != "$OUT_ROOT" ]]; then
-  TMP_DATA_YAML=$(mktemp /tmp/custom_yolo_data.XXXXXX.yaml)
+  TMP_DATA_YAML=$(mktemp /tmp/custom_yolo_data.XXXXXX.yaml) || { echo "Error: failed to create temporary YAML in /tmp" >&2; exit 1; }
   echo "Creating temp data YAML at $TMP_DATA_YAML with path: $OUT_ROOT"
   {
     echo "path: $OUT_ROOT"

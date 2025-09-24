@@ -2,13 +2,45 @@ sdg_training_custom
 ====================
 
 Lightweight pipeline to generate synthetic data in NVIDIA Isaac Sim for any custom object USD, and train a YOLOv8 detector on the output. This repo generalizes an internal workflow to configurable "custom" objects.  
-This pipeline is mainly thought for bin picking applications, thus having various robots as distractors. Customize it to your needs for other applications. 
+This pipeline is mainly thought for bin picking applications to use in isaac_ros_foundation pipeline, thus having various robots as distractors. Customize it to your needs for other applications. 
 
 What It Does
 ------------
 - Spawns one or more custom USD assets, randomizes pose, lighting, and environment textures, and optionally adds distractors.
 - Writes COCO-format annotations (2D bboxes, semantic and instance masks optional).
 - Organizes images/labels for YOLO and starts a YOLOv8 training run.
+
+Requirements
+------------
+- Isaac Sim 5.0 (with Replicator) and access to the Isaac assets server (Nucleus) for environments. I prefer building Isaac SIM 5.0 from source with the instructions provided in the [IsaacSim official GitHub repo](https://github.com/isaac-sim/IsaacSim).
+- For `custom_datagen_convert_yolov8.sh` and training: follow [yolov8_setup.md](https://github.com/pastoriomarco/sdg_training_custom/blob/main/custom_sdg/yolov8_setup.md) to set up `yolov8` Python environment with Conda.
+
+Quick Start
+-----------
+1. Create the SDG workspace folder and download the repo. Edit the SDG workspace folder as you want:
+```bash
+export SDG_WS=~/workspaces/sdg/
+mkdir -p $SDG_WS
+cd $SDG_WS && \
+  git clone https://github.com/pastoriomarco/sdg_training_custom.git
+```
+2. Run `custom_datagen_convert_yolov8.sh` from SDG workspace: the scripts will download the required models there. You should at least provide the path to the custom object `usd` and to the materials' folder. E.g.:
+```bash
+cd $SDG_WS && \
+  CUSTOM_ASSET_PATHS=/EDIT/THIS/path/to/your/object.usd CUSTOM_MATERIALS_DIRS=/EDIT/THIS/path/to/materials_dir/ && \ 
+  $SDG_WS/src/sdg_training_custom/custom_sdg/custom_datagen_convert_yolov8.sh
+```
+Other folders you may want to set:  
+*SIM_PY* is where the Isaac SIM's python.sh script is located. If you didn't install in the recommended location, edit this variable accordingly.  
+*OUT_ROOT* is the output folder for the SDG. If you edit it for `custom_datagen_convert_yolov8.sh`, remember to provide the same for `custom_train_yolov8.sh`. 
+
+3. Edit `src/sdg_training_custom/custom_sdg/my_dataset.yaml` according to your needs, and check the env vars you can set for `custom_train_yolov8.sh`.  
+
+4. Once completed, proceed to model training and conversion:
+```bash
+cd $SDG_WS && \
+  $SDG_WS/src/sdg_training_custom/custom_sdg/custom_train_yolov8.sh  
+```
 
 Layout
 ------
@@ -18,11 +50,6 @@ Layout
 - `custom_sdg/custom_train_yolov8.sh` — Trains YOLOv8 on the generated dataset.
 - `custom_sdg/coco2yolo.py` — COCO → YOLO labels converter.
 - `custom_sdg/my_dataset.yaml` — YOLO dataset config (default class name `custom`).
-
-Requirements
-------------
-- Isaac Sim 5.0 (with Replicator) and access to the Isaac assets server (Nucleus) for environments. I prefer building Isaac SIM 5.0 from source with the instructions provided in the [IsaacSim official GitHub repo](https://github.com/isaac-sim/IsaacSim).
-- For `custom_datagen_convert_yolov8.sh` and training: follow [yolov8_setup.md](https://github.com/pastoriomarco/sdg_training_custom/blob/main/custom_sdg/yolov8_setup.md) to set up `yolov8` Python environment with Conda.
 
 Custom Objects
 --------------

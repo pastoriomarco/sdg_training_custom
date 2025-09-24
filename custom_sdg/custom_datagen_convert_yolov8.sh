@@ -2,9 +2,20 @@
 # Usage example (single-class):
 # CUSTOM_ASSET_PATH=/home/tndlux/Downloads/source/your_object.usd ./custom_datagen_convert_yolov8.sh
 set -euo pipefail
+set -o errtrace
 IFS=$'\n\t'
 
+# Optional verbose tracing: DEBUG=1 ./custom_datagen_convert_yolov8.sh
+if [[ "${DEBUG:-0}" == "1" ]]; then
+  set -x
+fi
+
+# Helpful error message on unexpected failures
+trap 'rc=$?; echo "Error: script failed at line $LINENO: $BASH_COMMAND (exit=$rc)" >&2; exit $rc' ERR
+
 # INSTALL ULTRALYTICS AND ALL DEPENDENCIES FOLLOWING INSTRUCTIONS ON yolov8_setup.md BEFORE RUNNING THIS FILE
+
+echo "custom_datagen_convert_yolov8.sh: starting"
 
 # This script launches dataset generation for train/val/test splits
 # and then arranges images/labels for YOLO by converting COCO -> YOLO.
@@ -26,7 +37,7 @@ FRAMES_TRAIN=${FRAMES_TRAIN:-2500}
 FRAMES_VAL=${FRAMES_VAL:-500}
 FRAMES_TEST=${FRAMES_TEST:-500}
 OUT_ROOT=${OUT_ROOT:-"$HOME/synthetic_out"}
-# Multi-asset, multi-class (colon-separated lists). Single-value works too.
+# Accepting Single-value inputs, and also multi-asset/multi-class (colon-separated lists).
 CUSTOM_ASSET_PATHS=${CUSTOM_ASSET_PATHS:-"$HOME/Downloads/source/TDNS06.usd"}
 CUSTOM_OBJECT_CLASSES=${CUSTOM_OBJECT_CLASSES:-"custom"}
 CUSTOM_PRIM_PREFIX=${CUSTOM_PRIM_PREFIX:-"custom"}

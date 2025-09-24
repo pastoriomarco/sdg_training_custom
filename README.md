@@ -180,3 +180,25 @@ Troubleshooting
 - Ensure Isaac Sim’s Nucleus asset server is reachable; the environment USD (`/Isaac/Environments/Simple_Warehouse/warehouse.usd`) loads from there.
 - If MDL URLs are blocked (no network), only local USD materials will be used.
 - If `custom_datagen.sh` can’t find the script, make sure `custom_sdg` is physically present under `${ISAAC_SIM_PATH}` or use the convert script that resolves paths locally.
+
+---
+
+DISCLAIMER
+==========
+
+This package builds upon and integrates components from:
+
+* [NVIDIA Isaac Sim](https://docs.isaacsim.omniverse.nvidia.com/latest/index.html)
+* [NVIDIA synthetic\_data\_generation\_training\_workflow](https://github.com/NVIDIA-AI-IOT/synthetic_data_generation_training_workflow)
+* [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
+
+All copyrights, trademarks, and ownership of the original software remain with their respective owners, including **NVIDIA Corporation** and **Ultralytics**.
+
+This tutorial and the associated launch files are **community-created** and are **not officially maintained, endorsed, or supported by NVIDIA**.
+
+It is intended to serve as a **reference and example** for custom training a YOLOV8 model with synthetic generated data created with Isaac SIM in a practical pipeline.  
+While care has been taken to test the setup, **there are no guarantees of correctness, completeness, or compatibility** with future Isaac SIM releases.
+
+Use this material **at your own discretion and risk**. For official documentation, support, and best practices, refer to the official NVIDIA documentation.
+
+---

@@ -30,7 +30,7 @@ cd $SDG_WS && \
   CUSTOM_ASSET_PATHS=/EDIT/THIS/path/to/your/object.usd CUSTOM_MATERIALS_DIRS=/EDIT/THIS/path/to/materials_dir/ && \ 
   $SDG_WS/src/sdg_training_custom/custom_sdg/custom_datagen_convert_yolov8.sh
 ```
-Other folders you may want to set:  
+Other folders you may want to set before running datagen:  
 *SIM_PY* is where the Isaac SIM's python.sh script is located. If you didn't install in the recommended location, edit this variable accordingly.  
 *OUT_ROOT* is the output folder for the SDG. If you edit it for `custom_datagen_convert_yolov8.sh`, remember to provide the same for `custom_train_yolov8.sh`. 
 

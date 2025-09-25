@@ -18,39 +18,39 @@ Requirements
 Quick Start
 -----------
 1. Create the SDG workspace folder and download the repo. Edit the SDG workspace folder as you want:
-```bash
-export SDG_WS=~/workspaces/sdg/
-mkdir -p ${SDG_WS}
-cd ${SDG_WS} && \
-  git clone https://github.com/pastoriomarco/sdg_training_custom.git
-```
+    ```bash
+    export SDG_WS=~/workspaces/sdg/
+    mkdir -p ${SDG_WS}
+    cd ${SDG_WS} && \
+      git clone https://github.com/pastoriomarco/sdg_training_custom.git
+    ```
 2. Run `custom_datagen_convert_yolov8.sh` from SDG workspace: the scripts will download the required models there. You should at least provide the path to the custom object `usd` and to the materials' folder. E.g.:
-```bash
-cd ${SDG_WS} && \
-  CUSTOM_ASSET_PATHS=/EDIT/THIS/path/to/your/object.usd CUSTOM_MATERIALS_DIRS=/EDIT/THIS/path/to/materials_dir/ \ 
-  ${SDG_WS}/src/sdg_training_custom/custom_sdg/custom_datagen_convert_yolov8.sh
-```
-Other folders you may want to set before running datagen:  
-*SIM_PY* is where the Isaac SIM's python.sh script is located. If you didn't install in the recommended location, edit this variable accordingly.  
-*OUT_ROOT* is the output folder for the SDG. If you edit it for `custom_datagen_convert_yolov8.sh`, remember to provide the same for `custom_train_yolov8.sh`. 
+    ```bash
+    cd ${SDG_WS} && \
+      CUSTOM_ASSET_PATHS=/EDIT/THIS/path/to/your/object.usd CUSTOM_MATERIALS_DIRS=/EDIT/THIS/path/to/materials_dir/ \ 
+      ${SDG_WS}/src/sdg_training_custom/custom_sdg/custom_datagen_convert_yolov8.sh
+    ```
+    Other folders you may want to set before running datagen:  
+    *SIM_PY* is where the Isaac SIM's python.sh script is located. If you didn't install in the recommended location, edit this variable accordingly.  
+    *OUT_ROOT* is the output folder for the SDG. If you edit it for `custom_datagen_convert_yolov8.sh`, remember to provide the same for `custom_train_yolov8.sh`. 
 
-For example, if you download the data from [my isaac_sim_custom_examples repo](https://github.com/pastoriomarco/isaac_sim_custom_examples.git) in ${SDG_WS} folder, you can run:
+    For example, if you download the data from [my isaac_sim_custom_examples repo](https://github.com/pastoriomarco/isaac_sim_custom_examples.git) in ${SDG_WS} folder, you can run:
 
-```bash
-cd ${SDG_WS} && \
-  CUSTOM_ASSET_PATHS=${SDG_WS}/src/isaac_sim_custom_examples/trocar_short.usdz \
-  CUSTOM_MATERIALS_DIRS=${SDG_WS}/src/isaac_sim_custom_examples/Materials/ \
-  OBJECT_SCALE=0.001 \
-  ${SDG_WS}/src/sdg_training_custom/custom_sdg/custom_datagen_convert_yolov8.sh
-```
+    ```bash
+    cd ${SDG_WS} && \
+      CUSTOM_ASSET_PATHS=${SDG_WS}/src/isaac_sim_custom_examples/trocar_short.usdz \
+      CUSTOM_MATERIALS_DIRS=${SDG_WS}/src/isaac_sim_custom_examples/Materials/ \
+      OBJECT_SCALE=0.001 \
+      ${SDG_WS}/src/sdg_training_custom/custom_sdg/custom_datagen_convert_yolov8.sh
+    ```
 
 3. Edit `src/sdg_training_custom/custom_sdg/my_dataset.yaml` according to your needs, and check the env vars you can set for `custom_train_yolov8.sh`.  
 
 4. Once completed, proceed to model training and conversion:
-```bash
-cd ${SDG_WS} && \
-  ${SDG_WS}/src/sdg_training_custom/custom_sdg/custom_train_yolov8.sh  
-```
+    ```bash
+    cd ${SDG_WS} && \
+      ${SDG_WS}/src/sdg_training_custom/custom_sdg/custom_train_yolov8.sh  
+    ```
 
 Layout
 ------

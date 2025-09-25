@@ -185,6 +185,70 @@ Defaults (if not set):
 - Fallback behavior: If Replicator instances don’t appear, the script references your asset(s) under `/World/<prim_prefix>_##` and applies the chosen semantics. `--fallback_count` controls how many fallback references per asset.
 - COCO writer toggles are defined in `standalone_custom_sdg.py` (RGB, tight 2D boxes, semantic and instance masks on by default).
 
+ Datagen + Convert Parameters (env vars)
+ ---------------------------------------
+ `custom_sdg/custom_datagen_convert_yolov8.sh` drives 3 generation passes (train/val/test) via Isaac Sim, then converts COCO → YOLO and writes `my_dataset.yaml`. Configure it via environment variables:
+ - SIM_PY: path to Isaac Sim `python.sh`. Default: `$HOME/isaacsim/_build/linux-x86_64/release/python.sh`.
+ - WIDTH, HEIGHT: output image resolution. Default: `640`, `640`.
+ - HEADLESS: run generator headless (`1/true/yes` or `0/false/no`). Default: `True`.
+ - FRAMES_TRAIN, FRAMES_VAL, FRAMES_TEST: frames per split. Default: `2500`, `500`, `500`.
+ - OUT_ROOT: dataset root folder. Default: `$HOME/synthetic_out`.
+ - CUSTOM_ASSET_PATHS: colon-separated list of USD files. Required for your assets. Example: `/a.usd:/b.usd`.
+ - CUSTOM_OBJECT_CLASSES: colon-separated class names, 1:1 with assets, order defines class ids. Default: `custom` (single-asset only).
+ - CUSTOM_PRIM_PREFIX: prefix for fallback prim names under `/World`. Default: `custom`.
+ - FALLBACK_COUNT: number of fallback references per asset if Replicator instances are missing. Default: `2`.
+ - CUSTOM_MATERIALS_DIRS: colon-separated directories with local USD materials. If unset, defaults derive from each asset dir and `Materials/`.
+ - DISTRACTORS: choose `warehouse`, `additional`, or `None`. Default: `warehouse`.
+ - DISTRACTORS_TRAIN, DISTRACTORS_VAL, DISTRACTORS_TEST: per-split overrides; default to `DISTRACTORS` when unset.
+ - OBJECT_SCALE: object scale range/values. See “Object Scale” below. Default: fixed `0.01` when unset.
+ - CAM_POS, OBJ_POS, OBJ_ROT, DIST_POS, DIST_ROT, DIST_SCALE: ranges for camera, object group, and distractors. See “Position/Rotation/Scale Ranges” below for accepted formats and defaults.
+ - AUTO_CLEAN: when `1` or `true`, delete existing `OUT_ROOT` without prompting. Default: disabled (prompts when interactive).
+ - DEBUG: enable verbose bash tracing when `1`. Default: `0`.
+
+ Notes
+ - Multi-asset requires `CUSTOM_OBJECT_CLASSES` with the same count; order is preserved and used to build `names:` in `my_dataset.yaml` (stable across splits).
+ - Materials: set `CUSTOM_MATERIALS_DIRS` to add extra directories; otherwise the generator searches each asset’s folder and `Materials/` subfolder.
+ - The script requires the `yolov8` Conda env to be active; follow `yolov8_setup.md` for setup.
+
+ Examples
+ - Single asset with local materials and fixed scale:
+   `CUSTOM_ASSET_PATHS=/data/thing.usd CUSTOM_MATERIALS_DIRS=/data/Materials OBJECT_SCALE=0.01 ./custom_sdg/custom_datagen_convert_yolov8.sh`
+ - Two assets, two classes, per-split distractors and custom frames:
+   `CUSTOM_ASSET_PATHS=/a.usd:/b.usd CUSTOM_OBJECT_CLASSES=cup:bottle FRAMES_TRAIN=3000 FRAMES_VAL=600 FRAMES_TEST=600 DISTRACTORS_TRAIN=warehouse DISTRACTORS_VAL=None DISTRACTORS_TEST=additional ./custom_sdg/custom_datagen_convert_yolov8.sh`
+ - Non-headless, custom resolution, auto-clean:
+   `HEADLESS=0 WIDTH=960 HEIGHT=544 AUTO_CLEAN=1 ./custom_sdg/custom_datagen_convert_yolov8.sh`
+
+ Train Script Parameters (env vars)
+ ----------------------------------
+ `custom_sdg/custom_train_yolov8.sh` is configured via environment variables (no positional flags). Common knobs and defaults:
+ - OUT_ROOT: dataset root produced by convert step. Default: `$HOME/synthetic_out`.
+ - DATA_YAML: path to dataset yaml to use. Default: auto-pick `$OUT_ROOT/my_dataset.yaml`, else falls back to `custom_sdg/my_dataset.yaml`.
+ - MODEL: YOLOv8 model or weights to start from (e.g., `yolov8s.pt`, `yolov8n.pt`, `/path/to/best.pt`). Default: `yolov8s.pt`.
+ - EPOCHS: number of training epochs. Default: `50`.
+ - BATCH: batch size. Default: `16`.
+ - IMG_SIZE: image size (imgsz). Default: `640`.
+ - DEVICE: GPU id or `cpu`. Default: `0`.
+ - WORKERS: dataloader workers. Default: `8`.
+ - PROJECT_NAME: parent runs directory under `OUT_ROOT`. Default: `yolo_runs`.
+ - RUN_NAME: name of this training run. Default: `yolov8s_custom`.
+ - PYTHON_BIN: interpreter to use for checks/exports. Default: `python` (falls back to `python3`).
+ - EXPORT_ONNX: export `best.pt` to ONNX after training (`1` enable, `0` disable). Default: `1`.
+ - ENFORCE_LABELS: validate label class ids are within range when class meta is present (`1` enable, `0` disable). Default: `1`.
+ - DEBUG: enable verbose bash tracing (`1` enable). Default: `0`.
+
+ Notes
+ - The script requires the `yolov8` Conda env to be active and will exit if `CONDA_DEFAULT_ENV` is not `yolov8`.
+ - If `DATA_YAML` is unset, the script auto-selects `$OUT_ROOT/my_dataset.yaml` when present; otherwise it uses `custom_sdg/my_dataset.yaml` and patches its `path:` to the chosen `OUT_ROOT` at runtime.
+ - The underlying `ultralytics` CLI invocation maps to: `yolo detect train model=$MODEL data=$DATA_YAML imgsz=$IMG_SIZE epochs=$EPOCHS batch=$BATCH device=$DEVICE workers=$WORKERS project=$OUT_ROOT/$PROJECT_NAME name=$RUN_NAME`.
+
+Examples
+- Train with a different base model and larger image size:
+  `MODEL=yolov8m.pt IMG_SIZE=896 RUN_NAME=y8m_896 ./custom_sdg/custom_train_yolov8.sh`
+- Resume/fine-tune from previous weights and skip ONNX export:
+  `MODEL=$OUT_ROOT/yolo_runs/prev_run/weights/best.pt EXPORT_ONNX=0 ./custom_sdg/custom_train_yolov8.sh`
+- Use a custom dataset YAML and CPU training:
+  `DATA_YAML=/data/my_dataset.yaml DEVICE=cpu ./custom_sdg/custom_train_yolov8.sh`
+
 Troubleshooting
 ---------------
 - Ensure Isaac Sim’s Nucleus asset server is reachable; the environment USD (`/Isaac/Environments/Simple_Warehouse/warehouse.usd`) loads from there.

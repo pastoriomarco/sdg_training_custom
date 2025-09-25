@@ -248,13 +248,7 @@ Examples
   `MODEL=$OUT_ROOT/yolo_runs/prev_run/weights/best.pt EXPORT_ONNX=0 ./custom_sdg/custom_train_yolov8.sh`
 - Use a custom dataset YAML and CPU training:
   `DATA_YAML=/data/my_dataset.yaml DEVICE=cpu ./custom_sdg/custom_train_yolov8.sh`
-
-Troubleshooting
----------------
-- Ensure Isaac Sim’s Nucleus asset server is reachable; the environment USD (`/Isaac/Environments/Simple_Warehouse/warehouse.usd`) loads from there.
-- If MDL URLs are blocked (no network), only local USD materials will be used.
-- If `custom_datagen.sh` can’t find the script, make sure `custom_sdg` is physically present under `${ISAAC_SIM_PATH}` or use the convert script that resolves paths locally.
-
+  
 ---
 
 DISCLAIMER

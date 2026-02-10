@@ -131,6 +131,8 @@ docker run --rm -it --gpus all \
 
 6) Export ONNX
 --------------
+If `model_latest.pth` exists, you can export directly:
+
 ```bash
 docker run --rm -it --gpus all \
   --shm-size=16g --ulimit memlock=-1 --ulimit stack=67108864 \
@@ -141,6 +143,24 @@ docker run --rm -it --gpus all \
   -e /workspace/src/sdg_training_custom/rt-detr/rtdetr_train.yaml \
   results_dir=/workspace/src/sdg_training_custom/rt-detr/results \
   export.checkpoint=/workspace/src/sdg_training_custom/rt-detr/results/train/model_latest.pth \
+  export.onnx_file=/workspace/src/sdg_training_custom/rt-detr/results/export/model.onnx
+```
+
+If `model_latest.pth` is missing, export from the latest epoch checkpoint:
+
+```bash
+LATEST_EPOCH_CKPT=$(basename "$(ls -1 \
+  "${SDG_WS}/src/sdg_training_custom/rt-detr/results/train/model_epoch_"*.pth | sort | tail -n1)")
+
+docker run --rm -it --gpus all \
+  --shm-size=16g --ulimit memlock=-1 --ulimit stack=67108864 \
+  -v "${SDG_WS}:/workspace" \
+  -v "${SDG_OUT}:/data/synthetic_out" \
+  nvcr.io/nvidia/tao/tao-toolkit:6.25.11-pyt \
+  rtdetr export \
+  -e /workspace/src/sdg_training_custom/rt-detr/rtdetr_train.yaml \
+  results_dir=/workspace/src/sdg_training_custom/rt-detr/results \
+  export.checkpoint=/workspace/src/sdg_training_custom/rt-detr/results/train/${LATEST_EPOCH_CKPT} \
   export.onnx_file=/workspace/src/sdg_training_custom/rt-detr/results/export/model.onnx
 ```
 

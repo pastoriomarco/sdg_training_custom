@@ -25,7 +25,7 @@ import os
 import argparse
 import random
 import glob
-from typing import List
+from typing import List, Optional, Tuple
 
 
 def _str_to_bool(value):
@@ -113,6 +113,15 @@ def _parse_vec3_range(value: str, label: str) -> tuple:
     raise argparse.ArgumentTypeError(
         f"--{label} accepts 1, 2, 3 or 6 numbers (see README)."
     )
+
+
+def _is_unit_scale(mode: str, smin, smax) -> bool:
+    """Return True when the resolved scale is exactly 1 on all axes."""
+    if mode == "scalar":
+        return float(smin) == 1.0 and float(smax) == 1.0
+    min_v = tuple(float(v) for v in smin)
+    max_v = tuple(float(v) for v in smax)
+    return min_v == (1.0, 1.0, 1.0) and max_v == (1.0, 1.0, 1.0)
 
 
 parser = argparse.ArgumentParser("Dataset generator")
@@ -237,6 +246,65 @@ parser.add_argument(
     default=None,
     help=(
         "Distractor scale: accepts 's', 'min,max', 'x,y,z' or '(x_min,y_min,z_min,x_max,y_max,z_max)'.")
+)
+parser.add_argument(
+    "--warehouse_robot_paths",
+    type=str,
+    nargs="*",
+    default=None,
+    help=(
+        "Explicit articulated robot distractor paths under /Isaac/Robots (space-separated). "
+        "When provided, this list overrides defaults and config-file robots.")
+)
+parser.add_argument(
+    "--warehouse_robot_config",
+    type=str,
+    default=None,
+    help=(
+        "YAML config file defining warehouse robot distractors. "
+        "If omitted, uses custom_sdg/warehouse_robots.default.yaml when available.")
+)
+parser.add_argument(
+    "--warehouse_robot_repeat",
+    type=int,
+    default=None,
+    help=(
+        "Repeat factor for warehouse robot list (controls crowd density). "
+        "If omitted, uses config 'repeat', else defaults to 2.")
+)
+
+# Legacy options kept for backward compatibility.
+parser.add_argument(
+    "--allow_unstable_warehouse_robots",
+    type=_str_to_bool,
+    default=False,
+    help=(
+        "Legacy option; ignored when --warehouse_robot_paths or --warehouse_robot_config are used. "
+        "If True, include known-problematic articulated robots in legacy built-in list.")
+)
+parser.add_argument(
+    "--franka_distractor_variant",
+    type=str,
+    default="fr3",
+    choices=[
+        "panda",
+        "panda_instanceable",
+        "fr3",
+        "factory_franka",
+        "factory_franka_instanceable",
+        "none",
+    ],
+    help=(
+        "Legacy option for built-in list; ignored when --warehouse_robot_paths or --warehouse_robot_config are used.")
+)
+parser.add_argument(
+    "--extra_warehouse_robot_paths",
+    type=str,
+    nargs="*",
+    default=None,
+    help=(
+        "Legacy option; appends extra articulated robot distractors to legacy built-in list. "
+        "Only existing assets are used.")
 )
 
 args, _ = parser.parse_known_args()
@@ -365,9 +433,22 @@ try:
     if args.dist_scale:
         DIST_SCALE_MODE, DIST_SCALE_MIN, DIST_SCALE_MAX = _parse_object_scale_arg(args.dist_scale)
     else:
-        DIST_SCALE_MODE, DIST_SCALE_MIN, DIST_SCALE_MAX = "scalar", 1.0, 1.5
+        # Warehouse distractors are articulated robot assets; scaling them often
+        # creates disjoint joints that PhysX snaps to the origin.
+        if str(args.distractors).lower() == "warehouse":
+            DIST_SCALE_MODE, DIST_SCALE_MIN, DIST_SCALE_MAX = "scalar", 1.0, 1.0
+        else:
+            DIST_SCALE_MODE, DIST_SCALE_MIN, DIST_SCALE_MAX = "scalar", 1.0, 1.5
 except Exception as _exc:
     raise SystemExit(f"Invalid --dist_scale value: {args.dist_scale} ({_exc})")
+
+if str(args.distractors).lower() == "warehouse" and not _is_unit_scale(
+    DIST_SCALE_MODE, DIST_SCALE_MIN, DIST_SCALE_MAX
+):
+    print(
+        "[SDG] Warning: --distractors warehouse uses articulated robots; "
+        "non-unit --dist_scale can cause joint snapping/disjointed robots."
+    )
 
 # Resolve per-asset classes with strict validation when multi-asset
 if len(CUSTOM_ASSET_PATHS) > 1:
@@ -410,6 +491,7 @@ ENV_URL = "/Isaac/Environments/Simple_Warehouse/warehouse.usd"
 
 import carb
 import omni
+import omni.client
 import omni.usd
 from omni.isaac.core.utils.nucleus import get_assets_root_path
 from omni.isaac.core.utils.stage import get_current_stage, open_stage
@@ -425,18 +507,36 @@ rep.settings.carb_settings("/omni/replicator/RTSubframes", 4)
 def get_custom_asset_paths():
     return CUSTOM_ASSET_PATHS
 
-# Distractors (BIN PICKING VERSION)
-DISTRACTORS_WAREHOUSE = 2 * [
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_WAREHOUSE_ROBOT_CONFIG = os.path.join(SCRIPT_DIR, "warehouse_robots.default.yaml")
+
+# Conservative default articulated distractor set.
+DEFAULT_WAREHOUSE_ROBOT_PATHS = [
     "/Isaac/Robots/UniversalRobots/ur3e/ur3e.usd",
-    "/Isaac/Robots/UniversalRobots/ur5e/ur5e.usd",
-    "/Isaac/Robots/UniversalRobots/ur10e/ur10e.usd",
-    "/Isaac/Robots/FrankaRobotics/FrankaPanda/franka.usd",
     "/Isaac/Robots/Ufactory/lite6/lite6.usd",
     "/Isaac/Robots/Ufactory/uf850/uf850.usd",
     "/Isaac/Robots/Ufactory/xarm6/xarm6.usd",
+]
+
+# Legacy controls retained for backward compatibility when no explicit robot list/config is used.
+FRANKA_DISTRACTOR_VARIANTS = {
+    "panda": "/Isaac/Robots/FrankaRobotics/FrankaPanda/franka.usd",
+    "panda_instanceable": "/Isaac/Robots/FrankaRobotics/FrankaEmika/panda_instanceable.usd",
+    "fr3": "/Isaac/Robots/FrankaRobotics/FrankaFR3/fr3.usd",
+    "factory_franka": "/Isaac/Robots/FrankaRobotics/FactoryFranka/factory_franka.usd",
+    "factory_franka_instanceable": "/Isaac/Robots/FrankaRobotics/FactoryFranka/factory_franka_instanceable.usd",
+    "none": "",
+}
+WAREHOUSE_UNSTABLE_DISTRACTORS = {
+    "/Isaac/Robots/FrankaRobotics/FrankaPanda/franka.usd",
+    "/Isaac/Robots/FrankaRobotics/FrankaEmika/panda_instanceable.usd",
+    "/Isaac/Robots/FrankaRobotics/FactoryFranka/factory_franka.usd",
+    "/Isaac/Robots/FrankaRobotics/FactoryFranka/factory_franka_instanceable.usd",
+    "/Isaac/Robots/UniversalRobots/ur5e/ur5e.usd",
+    "/Isaac/Robots/UniversalRobots/ur10e/ur10e.usd",
     "/Isaac/Robots/Ufactory/xarm_gripper/xarm_gripper.usd",
     "/Isaac/Robots/Ufactory/lite6_gripper/uf_lite_gripper.usd",
-]
+}
 
 DISTRACTORS_ADDITIONAL = [
     "/Isaac/Environments/Hospital/Props/Pharmacy_Low.usd",
@@ -577,18 +677,207 @@ def update_semantics(stage, keep_semantics=[]):
                     prim.RemoveAPI(Semantics.SemanticsAPI, instance_name)
 
 
+_ASSETS_ROOT_PATH = None
+
+
+def _get_assets_root_cached() -> str:
+    global _ASSETS_ROOT_PATH
+    if _ASSETS_ROOT_PATH is None:
+        _ASSETS_ROOT_PATH = get_assets_root_path()
+        if _ASSETS_ROOT_PATH is None:
+            raise Exception("Nucleus server not found, could not access Isaac Sim assets folder")
+    return _ASSETS_ROOT_PATH
+
+
 def prefix_with_isaac_asset_server(relative_path: str) -> str:
-    assets_root_path = get_assets_root_path()
-    if assets_root_path is None:
-        raise Exception("Nucleus server not found, could not access Isaac Sim assets folder")
-    return assets_root_path + relative_path
+    return _get_assets_root_cached() + relative_path
+
+
+def _dedupe_keep_order(items):
+    seen = set()
+    out = []
+    for item in items:
+        if item not in seen:
+            out.append(item)
+            seen.add(item)
+    return out
+
+
+def _normalize_robot_asset_path(path: str) -> str:
+    p = str(path).strip().strip('"').strip("'")
+    if not p:
+        return ""
+    if p.startswith(("omniverse://", "http://", "https://", "file://")):
+        return p
+    if p.startswith("/"):
+        return p
+    return "/" + p
+
+
+def _resolve_robot_asset_url(path: str) -> str:
+    p = _normalize_robot_asset_path(path)
+    if not p:
+        return ""
+    if p.startswith(("omniverse://", "http://", "https://", "file://")):
+        return p
+    if p.startswith("/Isaac/"):
+        return prefix_with_isaac_asset_server(p)
+    return prefix_with_isaac_asset_server("/Isaac/" + p.lstrip("/"))
+
+
+def _resolve_optional_path(path: str) -> str:
+    p = _expand_path(path)
+    if os.path.isfile(p):
+        return p
+    if os.path.isabs(path):
+        return p
+    return os.path.join(SCRIPT_DIR, path)
+
+
+def _parse_warehouse_robot_config(config_path: str) -> Tuple[List[str], Optional[int]]:
+    if not os.path.isfile(config_path):
+        raise SystemExit(f"Warehouse robot config file not found: {config_path}")
+
+    robots: List[str] = []
+    repeat: Optional[int] = None
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            if line.startswith("-"):
+                item = _normalize_robot_asset_path(line[1:].strip())
+                if item:
+                    robots.append(item)
+                continue
+            if ":" in line:
+                key, value = line.split(":", 1)
+                key = key.strip().lower()
+                value = value.strip()
+                if key == "repeat" and value:
+                    try:
+                        repeat = int(value)
+                    except Exception as exc:
+                        raise SystemExit(
+                            f"Invalid repeat value in warehouse robot config '{config_path}': {value} ({exc})"
+                        )
+                continue
+
+    return robots, repeat
+
+
+def _legacy_warehouse_robot_paths() -> List[str]:
+    franka_path = FRANKA_DISTRACTOR_VARIANTS.get(args.franka_distractor_variant, "")
+    base = [
+        "/Isaac/Robots/UniversalRobots/ur3e/ur3e.usd",
+        "/Isaac/Robots/UniversalRobots/ur5e/ur5e.usd",
+        "/Isaac/Robots/UniversalRobots/ur10e/ur10e.usd",
+        "/Isaac/Robots/Ufactory/lite6/lite6.usd",
+        "/Isaac/Robots/Ufactory/uf850/uf850.usd",
+        "/Isaac/Robots/Ufactory/xarm6/xarm6.usd",
+        "/Isaac/Robots/Ufactory/xarm_gripper/xarm_gripper.usd",
+        "/Isaac/Robots/Ufactory/lite6_gripper/uf_lite_gripper.usd",
+    ]
+    if franka_path:
+        base.append(franka_path)
+    base.extend(_normalize_robot_asset_path(p) for p in (args.extra_warehouse_robot_paths or []))
+    base = [p for p in _dedupe_keep_order(base) if p]
+    if not args.allow_unstable_warehouse_robots:
+        base = [p for p in base if p not in WAREHOUSE_UNSTABLE_DISTRACTORS]
+    return base
+
+
+def _resolve_warehouse_robot_inputs() -> Tuple[List[str], int, str]:
+    config_paths: List[str] = []
+    config_repeat: Optional[int] = None
+    source = "built-in-default"
+
+    config_file = None
+    if args.warehouse_robot_config:
+        config_file = _resolve_optional_path(args.warehouse_robot_config)
+    elif os.path.isfile(DEFAULT_WAREHOUSE_ROBOT_CONFIG):
+        config_file = DEFAULT_WAREHOUSE_ROBOT_CONFIG
+
+    if config_file:
+        config_paths, config_repeat = _parse_warehouse_robot_config(config_file)
+        source = f"config:{config_file}"
+
+    if args.warehouse_robot_paths:
+        robot_paths = [_normalize_robot_asset_path(p) for p in args.warehouse_robot_paths]
+        source = "cli:--warehouse_robot_paths"
+    else:
+        legacy_requested = bool(args.extra_warehouse_robot_paths) or args.allow_unstable_warehouse_robots or (
+            args.franka_distractor_variant != "fr3"
+        )
+        if legacy_requested and not args.warehouse_robot_config:
+            robot_paths = _legacy_warehouse_robot_paths()
+            source = "legacy-options"
+        elif config_paths:
+            robot_paths = [_normalize_robot_asset_path(p) for p in config_paths]
+        else:
+            robot_paths = list(DEFAULT_WAREHOUSE_ROBOT_PATHS)
+
+    robot_paths = [p for p in _dedupe_keep_order(robot_paths) if p]
+    if not robot_paths:
+        robot_paths = list(DEFAULT_WAREHOUSE_ROBOT_PATHS)
+        source = "built-in-default(fallback)"
+
+    if args.warehouse_robot_repeat is not None:
+        repeat = int(args.warehouse_robot_repeat)
+    elif config_repeat is not None:
+        repeat = int(config_repeat)
+    else:
+        repeat = 2
+    repeat = max(1, repeat)
+
+    return robot_paths, repeat, source
+
+
+def _filter_existing_robot_assets(robot_paths: List[str]) -> Tuple[List[str], List[str]]:
+    existing_urls = []
+    missing = []
+    for raw in robot_paths:
+        try:
+            resolved = _resolve_robot_asset_url(raw)
+            if not resolved:
+                missing.append(raw)
+                continue
+            status, _entry = omni.client.stat(resolved)
+            if status == omni.client.Result.OK:
+                existing_urls.append(resolved)
+            else:
+                missing.append(raw)
+        except Exception:
+            missing.append(raw)
+    return existing_urls, missing
 
 
 def full_distractors_list(distractor_type="warehouse"):
     full_dist_list = []
     if distractor_type == "warehouse":
-        for d in DISTRACTORS_WAREHOUSE:
-            full_dist_list.append(prefix_with_isaac_asset_server(d))
+        warehouse_paths, repeat, source = _resolve_warehouse_robot_inputs()
+        existing_urls, missing = _filter_existing_robot_assets(warehouse_paths)
+
+        if missing:
+            carb.log_warn(
+                "[SDG] Skipping %d warehouse robot asset path(s) not available in this Isaac asset source."
+                % len(missing)
+            )
+
+        if not existing_urls:
+            carb.log_error(
+                "[SDG] No valid warehouse robot distractor assets available. "
+                "Set --warehouse_robot_paths or --warehouse_robot_config."
+            )
+            return full_dist_list
+
+        carb.log_info(
+            "[SDG] Warehouse robots source=%s count=%d repeat=%d"
+            % (source, len(existing_urls), repeat)
+        )
+        for _ in range(repeat):
+            full_dist_list.extend(existing_urls)
     elif distractor_type == "additional":
         for d in DISTRACTORS_ADDITIONAL:
             full_dist_list.append(prefix_with_isaac_asset_server(d))

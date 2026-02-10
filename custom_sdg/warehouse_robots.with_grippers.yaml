@@ -1,0 +1,11 @@
+# Warehouse robot distractors including gripper-focused assets.
+# Note: gripper-only assets can be less stable in some scenes; keep DIST_SCALE=1.
+
+repeat: 2
+robots:
+  - /Isaac/Robots/UniversalRobots/ur3e/ur3e.usd
+  - /Isaac/Robots/Ufactory/lite6/lite6.usd
+  - /Isaac/Robots/Ufactory/uf850/uf850.usd
+  - /Isaac/Robots/Ufactory/xarm6/xarm6.usd
+  - /Isaac/Robots/Ufactory/xarm_gripper/xarm_gripper.usd
+  - /Isaac/Robots/Ufactory/lite6_gripper/uf_lite_gripper.usd

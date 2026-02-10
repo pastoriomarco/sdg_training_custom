@@ -1,0 +1,9 @@
+# Default articulated warehouse robot distractors for SDG.
+# Conservative set chosen to avoid common disjoint-joint snapping issues.
+
+repeat: 2
+robots:
+  - /Isaac/Robots/UniversalRobots/ur3e/ur3e.usd
+  - /Isaac/Robots/Ufactory/lite6/lite6.usd
+  - /Isaac/Robots/Ufactory/uf850/uf850.usd
+  - /Isaac/Robots/Ufactory/xarm6/xarm6.usd

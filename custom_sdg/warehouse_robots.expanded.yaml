@@ -1,0 +1,22 @@
+# Expanded articulated warehouse robot distractor set.
+# Safe to try: missing paths are auto-skipped by the generator.
+# Keep DIST_SCALE=1 with articulated distractors.
+
+repeat: 2
+robots:
+  # Conservative core set
+  - /Isaac/Robots/UniversalRobots/ur3e/ur3e.usd
+  - /Isaac/Robots/Ufactory/lite6/lite6.usd
+  - /Isaac/Robots/Ufactory/uf850/uf850.usd
+  - /Isaac/Robots/Ufactory/xarm6/xarm6.usd
+  - /Isaac/Robots/FrankaRobotics/FrankaFR3/fr3.usd
+
+  # Extra candidates (may be unavailable depending on Isaac asset package/version)
+  - /Isaac/Robots/UniversalRobots/ur16e/ur16e.usd
+  # - /Isaac/Robots/UniversalRobots/ur20/ur20.usd
+  # - /Isaac/Robots/UniversalRobots/ur30/ur30.usd
+  - /Isaac/Robots/Ufactory/xarm7/xarm7.usd
+  - /Isaac/Robots/Kinova/Gen3/gen3n7_instanceable.usd
+  - /Isaac/Robots/Techman/TM12/tm12.usd
+  # - /Isaac/Robots/RethinkRobotics/Sawyer/sawyer_instanceable.usd
+  # - /Isaac/Robots/Kuka/KR210_L150/kr210_l150.usd

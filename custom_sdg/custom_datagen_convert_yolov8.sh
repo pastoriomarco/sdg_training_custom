@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage example (single-class):
-# CUSTOM_ASSET_PATH=/home/tndlux/Downloads/source/your_object.usd ./custom_datagen_convert_yolov8.sh
+# CUSTOM_ASSET_PATHS=/home/tndlux/Downloads/source/your_object.usd WAREHOUSE_ROBOT_CONFIG=./warehouse_robots.default.yaml ./custom_datagen_convert_yolov8.sh
 set -euo pipefail
 set -o errtrace
 IFS=$'\n\t'
@@ -47,6 +47,9 @@ DISTRACTORS=${DISTRACTORS:-"warehouse"}
 DISTRACTORS_TRAIN=${DISTRACTORS_TRAIN:-"$DISTRACTORS"}
 DISTRACTORS_VAL=${DISTRACTORS_VAL:-"$DISTRACTORS"}
 DISTRACTORS_TEST=${DISTRACTORS_TEST:-"$DISTRACTORS"}
+WAREHOUSE_ROBOT_PATHS=${WAREHOUSE_ROBOT_PATHS:-""}
+WAREHOUSE_ROBOT_CONFIG=${WAREHOUSE_ROBOT_CONFIG:-""}
+WAREHOUSE_ROBOT_REPEAT=${WAREHOUSE_ROBOT_REPEAT:-""}
 OBJECT_SCALE=${OBJECT_SCALE:-""}
 CAM_POS=${CAM_POS:-""}
 OBJ_POS=${OBJ_POS:-""}
@@ -59,6 +62,10 @@ DIST_SCALE=${DIST_SCALE:-""}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 GEN_PY="$SCRIPT_DIR/standalone_custom_sdg.py"
 COCO2YOLO_PY="$SCRIPT_DIR/coco2yolo.py"
+if [[ -z "$WAREHOUSE_ROBOT_CONFIG" ]]; then
+  default_robots_cfg="$SCRIPT_DIR/warehouse_robots.default.yaml"
+  [[ -f "$default_robots_cfg" ]] && WAREHOUSE_ROBOT_CONFIG="$default_robots_cfg"
+fi
 
 if [[ ! -x "$SIM_PY" ]]; then
   echo "Isaac Sim python not found or not executable at: $SIM_PY" >&2
@@ -149,6 +156,7 @@ run_split() {
   local material_args=()
   local scale_args=()
   local pos_rot_args=()
+  local warehouse_robot_args=()
   local asset_args=(--asset_paths)
   local class_args=(--object_classes)
   if [[ -n "$CUSTOM_MATERIALS_DIRS" ]]; then
@@ -167,6 +175,14 @@ run_split() {
   [[ -n "$DIST_POS"  ]] && pos_rot_args+=(--dist_pos "$DIST_POS")
   [[ -n "$DIST_ROT"  ]] && pos_rot_args+=(--dist_rot "$DIST_ROT")
   [[ -n "$DIST_SCALE" ]] && pos_rot_args+=(--dist_scale "$DIST_SCALE")
+  [[ -n "$WAREHOUSE_ROBOT_CONFIG" ]] && warehouse_robot_args+=(--warehouse_robot_config "$WAREHOUSE_ROBOT_CONFIG")
+  [[ -n "$WAREHOUSE_ROBOT_REPEAT" ]] && warehouse_robot_args+=(--warehouse_robot_repeat "$WAREHOUSE_ROBOT_REPEAT")
+  if [[ -n "$WAREHOUSE_ROBOT_PATHS" ]]; then
+    IFS=':' read -r -a robot_paths <<< "$WAREHOUSE_ROBOT_PATHS"
+    if [[ ${#robot_paths[@]} -gt 0 ]]; then
+      warehouse_robot_args+=(--warehouse_robot_paths "${robot_paths[@]}")
+    fi
+  fi
   for a in "${ASSETS[@]}"; do asset_args+=("$a"); done
   for c in "${CLASSES[@]}"; do class_args+=("$c"); done
   echo "Generating $split with $frames frames..."
@@ -176,6 +192,7 @@ run_split() {
     --num_frames "$frames" \
     --width "$WIDTH" --height "$HEIGHT" \
     --distractors "$dist" \
+    "${warehouse_robot_args[@]}" \
     --data_dir "$OUT_ROOT/$split" \
     "${asset_args[@]}" \
     "${class_args[@]}" \

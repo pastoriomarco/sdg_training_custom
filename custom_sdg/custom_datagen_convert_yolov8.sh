@@ -20,12 +20,19 @@ echo "custom_datagen_convert_yolov8.sh: starting"
 # This script launches dataset generation for train/val/test splits
 # and then arranges images/labels for YOLO by converting COCO -> YOLO.
 
-# Ensure correct conda environment is active for the conversion step
-if [[ "${CONDA_DEFAULT_ENV:-}" != "yolov8" ]]; then
-  echo "Error: Please activate the 'yolov8' conda environment before running this script." >&2
-  echo "Hint: conda activate yolov8" >&2
-  echo "Refer to /custom_sdg/yolov8_setup.md for all requirements" >&2
-  exit 1
+# TAO/COCO-only mode: skip all YOLO-specific post-processing and env checks.
+SKIP_YOLO_POST=${SKIP_YOLO_POST:-0}
+if [[ "${SKIP_YOLO_POST,,}" != "1" && "${SKIP_YOLO_POST,,}" != "true" ]]; then
+  # Ensure correct conda environment is active for the conversion step
+  if [[ "${CONDA_DEFAULT_ENV:-}" != "yolov8" ]]; then
+    echo "Error: Please activate the 'yolov8' conda environment before running this script." >&2
+    echo "Hint: conda activate yolov8" >&2
+    echo "Refer to /custom_sdg/yolov8_setup.md for all requirements" >&2
+    echo "If you only need COCO output (e.g., TAO RT-DETR), run with SKIP_YOLO_POST=1." >&2
+    exit 1
+  fi
+else
+  echo "SKIP_YOLO_POST enabled: generating COCO splits only (skipping YOLO conversion artifacts)."
 fi
 
 # Allow overriding via env vars
@@ -207,46 +214,49 @@ run_split train "$FRAMES_TRAIN" "$DISTRACTORS_TRAIN"
 run_split val   "$FRAMES_VAL"   "$DISTRACTORS_VAL"
 run_split test  "$FRAMES_TEST"  "$DISTRACTORS_TEST"
 
-# Prepare YOLO folder structure and collect images
-mkdir -p "$OUT_ROOT/images/train" "$OUT_ROOT/images/val" "$OUT_ROOT/images/test"
-mkdir -p "$OUT_ROOT/labels/train" "$OUT_ROOT/labels/val" "$OUT_ROOT/labels/test"
+# YOLO-only post-processing
+if [[ "${SKIP_YOLO_POST,,}" != "1" && "${SKIP_YOLO_POST,,}" != "true" ]]; then
+  # Prepare YOLO folder structure and collect images
+  mkdir -p "$OUT_ROOT/images/train" "$OUT_ROOT/images/val" "$OUT_ROOT/images/test"
+  mkdir -p "$OUT_ROOT/labels/train" "$OUT_ROOT/labels/val" "$OUT_ROOT/labels/test"
 
-link_images() {
-  local split=$1
-  local src="$OUT_ROOT/$split/Replicator"
-  local dst="$OUT_ROOT/images/$split"
-  [[ -d "$src" ]] || return 0
-  echo "Linking images for $split from $src -> $dst"
-  find "$src" -type f \( -iname '*.png' -o -iname '*.jpg' \) -print0 | while IFS= read -r -d '' f; do
-    ln -sf "$f" "$dst/"
-  done
-}
+  link_images() {
+    local split=$1
+    local src="$OUT_ROOT/$split/Replicator"
+    local dst="$OUT_ROOT/images/$split"
+    [[ -d "$src" ]] || return 0
+    echo "Linking images for $split from $src -> $dst"
+    find "$src" -type f \( -iname '*.png' -o -iname '*.jpg' \) -print0 | while IFS= read -r -d '' f; do
+      ln -sf "$f" "$dst/"
+    done
+  }
 
-link_images train
-link_images val
-link_images test
+  link_images train
+  link_images val
+  link_images test
 
-# Convert COCO -> YOLO
-if [[ -f "$COCO2YOLO_PY" ]]; then
-  echo "Converting COCO -> YOLO at $OUT_ROOT"
-  python "$COCO2YOLO_PY" "$OUT_ROOT"
-else
-  echo "Warning: $COCO2YOLO_PY not found; skipping COCO->YOLO conversion" >&2
+  # Convert COCO -> YOLO
+  if [[ -f "$COCO2YOLO_PY" ]]; then
+    echo "Converting COCO -> YOLO at $OUT_ROOT"
+    python "$COCO2YOLO_PY" "$OUT_ROOT"
+  else
+    echo "Warning: $COCO2YOLO_PY not found; skipping COCO->YOLO conversion" >&2
+  fi
+
+  # Emit dataset YAML with multi-class names (stable order)
+  DATA_YAML_OUT="$OUT_ROOT/my_dataset.yaml"
+  echo "Writing dataset YAML to $DATA_YAML_OUT"
+  {
+    echo "path: $OUT_ROOT"
+    echo "train: images/train"
+    echo "val: images/val"
+    echo "test: images/test"
+    echo "names:"
+    for c in "${UNIQUE_CLASSES[@]}"; do
+      echo "  - $c"
+    done
+  } > "$DATA_YAML_OUT"
 fi
-
-# Emit dataset YAML with multi-class names (stable order)
-DATA_YAML_OUT="$OUT_ROOT/my_dataset.yaml"
-echo "Writing dataset YAML to $DATA_YAML_OUT"
-{
-  echo "path: $OUT_ROOT"
-  echo "train: images/train"
-  echo "val: images/val"
-  echo "test: images/test"
-  echo "names:"
-  for c in "${UNIQUE_CLASSES[@]}"; do
-    echo "  - $c"
-  done
-} > "$DATA_YAML_OUT"
 
 # Persist meta for training-time validation
 printf "%s\n" "${ASSETS[@]}" > "$OUT_ROOT/assets_used.txt"

@@ -150,6 +150,7 @@ This section summarizes all available parameters/env vars for every entry point.
 - `WAREHOUSE_ROBOT_REPEAT` (default repeat for robot list density; overrides config `repeat`)
 - `OBJECT_SCALE`, `CAM_POS`, `OBJ_POS`, `OBJ_ROT`, `DIST_POS`, `DIST_ROT`, `DIST_SCALE`
 - `AUTO_CLEAN`, `DEBUG`
+- `SKIP_YOLO_POST` (`1/true` skips YOLO env check and YOLO post-processing artifacts)
 
 `custom_sdg/standalone_custom_sdg.py` (CLI flags)
 - `--headless`, `--width`, `--height`, `--num_frames`, `--data_dir`, `--distractors`
@@ -279,11 +280,12 @@ Defaults (if not set):
  - CAM_POS, OBJ_POS, OBJ_ROT, DIST_POS, DIST_ROT, DIST_SCALE: ranges for camera, object group, and distractors. See “Position/Rotation/Scale Ranges” below for accepted formats and defaults.
  - AUTO_CLEAN: when `1` or `true`, delete existing `OUT_ROOT` without prompting. Default: disabled (prompts when interactive).
  - DEBUG: enable verbose bash tracing when `1`. Default: `0`.
+ - SKIP_YOLO_POST: when `1` or `true`, generate only COCO split outputs and skip YOLO conversion artifacts (`images/`, `labels/`, `my_dataset.yaml`) and the `yolov8` env check.
 
  Notes
  - Multi-asset requires `CUSTOM_OBJECT_CLASSES` with the same count; order is preserved and used to build `names:` in `my_dataset.yaml` (stable across splits).
  - Materials: set `CUSTOM_MATERIALS_DIRS` to explicit directories. For per-asset automatic discovery, set `CUSTOM_MATERIALS_DIRS=""`.
- - The script requires the `yolov8` Conda env to be active; follow `yolov8_setup.md` for setup.
+ - The script requires the `yolov8` Conda env only when `SKIP_YOLO_POST` is not enabled; follow `yolov8_setup.md` for setup when using YOLO conversion/training flow.
 
  Examples
 - Single asset with local materials and fixed scale:

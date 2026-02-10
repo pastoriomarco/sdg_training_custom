@@ -20,8 +20,8 @@ Quick Start
 1. Create the SDG workspace folder and download the repo. Edit the SDG workspace folder as you want:
     ```bash
     export SDG_WS=~/workspaces/sdg/
-    mkdir -p ${SDG_WS}
-    cd ${SDG_WS} && \
+    mkdir -p ${SDG_WS}/src
+    cd ${SDG_WS}/src && \
       git clone https://github.com/pastoriomarco/sdg_training_custom.git
     ```
 2. Run `custom_datagen_convert_yolov8.sh` from SDG workspace: the scripts will download the required models there. You should at least provide the path to the custom object `usd` and to the materials' folder. E.g.:
@@ -36,7 +36,7 @@ Quick Start
     *SIM_PY* is where the Isaac SIM's python.sh script is located. If you didn't install in the recommended location, edit this variable accordingly.  
     *OUT_ROOT* is the output folder for the SDG. If you edit it for `custom_datagen_convert_yolov8.sh`, remember to provide the same for `custom_train_yolov8.sh`. 
 
-    For example, if you download the data from [my isaac_sim_custom_examples repo](https://github.com/pastoriomarco/isaac_sim_custom_examples.git) in ${SDG_WS} folder, you can run:
+    For example, if you download the data from [my isaac_sim_custom_examples repo](https://github.com/pastoriomarco/isaac_sim_custom_examples.git) in ${SDG_WS}/src folder, you can run:
 
     ```bash
     cd ${SDG_WS} && \

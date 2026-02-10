@@ -1,0 +1,165 @@
+{"date": "2/10/2026", "time": "18:47:42", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:47:42", "status": "FAILURE", "verbosity": "INFO", "message": "File system error: [Errno 2] No such file or directory: '/data/synthetic_out/val/coco_annotations.json'"}
+{"date": "2/10/2026", "time": "18:48:34", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:48:34", "status": "FAILURE", "verbosity": "INFO", "message": "File system error: [Errno 2] No such file or directory: '/data/synthetic_out/val/coco_annotations.json'"}
+{"date": "2/10/2026", "time": "18:49:14", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:49:14", "status": "FAILURE", "verbosity": "INFO", "message": "Parameter validation error: Your annotation class ids are not contigous. If you're using the original COCO annotation, please set remap_mscoco_category=True.\nLargest class id: 201 & num_classes: 1\nYou may also use `annotations convert` from Data Services to convert your annotation into contiguous format."}
+{"date": "2/10/2026", "time": "18:51:15", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:51:16", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:51:16", "status": "FAILURE", "verbosity": "INFO", "message": "File system error: Caught FileNotFoundError in DataLoader worker process 0.\nOriginal Traceback (most recent call last):\n  File \"/usr/local/lib/python3.12/dist-packages/torch/utils/data/_utils/worker.py\", line 349, in _worker_loop\n    data = fetcher.fetch(index)  # type: ignore[possibly-undefined]\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/utils/data/_utils/fetch.py\", line 52, in fetch\n    data = [self.dataset[idx] for idx in possibly_batched_index]\n            ~~~~~~~~~~~~^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/nvidia_tao_pytorch/cv/rtdetr/dataloader/serialized_dataset.py\", line 158, in __getitem__\n    image = self._load_image(image_path)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/nvidia_tao_pytorch/cv/rtdetr/dataloader/serialized_dataset.py\", line 87, in _load_image\n    image = Image.open(image_path).convert(\"RGB\")\n            ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/PIL/Image.py\", line 3513, in open\n    fp = builtins.open(filename, \"rb\")\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/data/synthetic_out/train/Replicator/Replicator/rgb_Camera-Xform-Camera_hvbaqftc.1143.png'\n"}
+{"date": "2/10/2026", "time": "18:51:54", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:51:55", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:52:41", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:52:42", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:52:43", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.0009108910687489085"}
+{"date": "2/10/2026", "time": "18:52:43", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.004752475141298653"}
+{"date": "2/10/2026", "time": "18:52:44", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.0009108910687489085", "val_mAP50": "0.004752475141298653", "val_loss": 2.763291835784912}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:01.642013", "time_per_step": "0:00:01.118074", "eta": "0:00:00", "date": "2/10/2026", "time": "18:52:44", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.0009108910687489085", "val_mAP50": "0.004752475141298653", "val_loss": 2.763291835784912}}
+{"date": "2/10/2026", "time": "18:52:44", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 35.74253463745117}}
+{"date": "2/10/2026", "time": "18:52:44", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 35.74253463745117}}
+{"date": "2/10/2026", "time": "18:52:44", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 35.74253463745117}}
+{"date": "2/10/2026", "time": "18:54:24", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:54:26", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00014489253263662356"}
+{"date": "2/10/2026", "time": "18:54:26", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0003622313315915589"}
+{"date": "2/10/2026", "time": "18:54:26", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:56:19", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:56:20", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:56:21", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00028824449544495877"}
+{"date": "2/10/2026", "time": "18:56:21", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0010797144974222278"}
+{"date": "2/10/2026", "time": "18:56:21", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.00028824449544495877", "val_mAP50": "0.0010797144974222278", "val_loss": 2.8633363246917725}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:01.561359", "time_per_step": "0:00:00.994746", "eta": "0:00:00", "date": "2/10/2026", "time": "18:56:22", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.00028824449544495877", "val_mAP50": "0.0010797144974222278", "val_loss": 2.8633363246917725}}
+{"date": "2/10/2026", "time": "18:56:22", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 38.33293533325195}}
+{"date": "2/10/2026", "time": "18:56:22", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 38.33293533325195}}
+{"date": "2/10/2026", "time": "18:56:22", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 38.33293533325195}}
+{"date": "2/10/2026", "time": "18:56:36", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:56:37", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:56:38", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00022660885190609658"}
+{"date": "2/10/2026", "time": "18:56:38", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0006119395135947974"}
+{"date": "2/10/2026", "time": "18:56:38", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.00022660885190609658", "val_mAP50": "0.0006119395135947974", "val_loss": 2.9330453872680664}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:01.840361", "time_per_step": "0:00:01.031791", "eta": "0:00:00", "date": "2/10/2026", "time": "18:56:38", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.00022660885190609658", "val_mAP50": "0.0006119395135947974", "val_loss": 2.9330453872680664}}
+{"date": "2/10/2026", "time": "18:56:38", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 41.124420166015625}}
+{"date": "2/10/2026", "time": "18:56:38", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 41.124420166015625}}
+{"date": "2/10/2026", "time": "18:56:39", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 41.124420166015625}}
+{"date": "2/10/2026", "time": "18:56:52", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:56:53", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:58:13", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:58:14", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:58:17", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00012256947696430258"}
+{"date": "2/10/2026", "time": "18:58:17", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.00040042095605542164"}
+{"date": "2/10/2026", "time": "18:58:17", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.00012256947696430258", "val_mAP50": "0.00040042095605542164", "val_loss": 2.9775896072387695}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:03.206694", "time_per_step": "0:00:01.912913", "eta": "0:00:00", "date": "2/10/2026", "time": "18:58:17", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.00012256947696430258", "val_mAP50": "0.00040042095605542164", "val_loss": 2.9775896072387695}}
+{"date": "2/10/2026", "time": "18:58:17", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 38.00389862060547}}
+{"date": "2/10/2026", "time": "18:58:17", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 38.00389862060547}}
+{"date": "2/10/2026", "time": "18:58:17", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 38.00389862060547}}
+{"date": "2/10/2026", "time": "18:58:42", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:58:43", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "18:58:44", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.0"}
+{"date": "2/10/2026", "time": "18:58:44", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0"}
+{"date": "2/10/2026", "time": "18:58:44", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.0", "val_mAP50": "0.0", "val_loss": 3.257134437561035}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:01.920755", "time_per_step": "0:00:01.036583", "eta": "0:00:00", "date": "2/10/2026", "time": "18:58:45", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.0", "val_mAP50": "0.0", "val_loss": 3.257134437561035}}
+{"date": "2/10/2026", "time": "18:58:45", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 33.51975631713867}}
+{"date": "2/10/2026", "time": "18:58:45", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 33.51975631713867}}
+{"date": "2/10/2026", "time": "18:58:45", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 33.51975631713867}}
+{"date": "2/10/2026", "time": "18:58:59", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "18:59:0", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:0:12", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:0:13", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:0:15", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.0"}
+{"date": "2/10/2026", "time": "19:0:15", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0"}
+{"date": "2/10/2026", "time": "19:0:15", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.0", "val_mAP50": "0.0", "val_loss": 3.4529099464416504}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:01.682990", "time_per_step": "0:00:01.057396", "eta": "0:00:00", "date": "2/10/2026", "time": "19:0:15", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.0", "val_mAP50": "0.0", "val_loss": 3.4529099464416504}}
+{"date": "2/10/2026", "time": "19:0:15", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 35.08549880981445}}
+{"date": "2/10/2026", "time": "19:0:15", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 35.08549880981445}}
+{"date": "2/10/2026", "time": "19:0:15", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 35.08549880981445}}
+{"date": "2/10/2026", "time": "19:0:28", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:0:29", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:0:31", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00028858441527527157"}
+{"date": "2/10/2026", "time": "19:0:31", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0016672287394504735"}
+{"date": "2/10/2026", "time": "19:0:31", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.00028858441527527157", "val_mAP50": "0.0016672287394504735", "val_loss": 3.3457415103912354}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:01.722467", "time_per_step": "0:00:01.031688", "eta": "0:00:00", "date": "2/10/2026", "time": "19:0:31", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.00028858441527527157", "val_mAP50": "0.0016672287394504735", "val_loss": 3.3457415103912354}}
+{"date": "2/10/2026", "time": "19:0:31", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 33.61245346069336}}
+{"date": "2/10/2026", "time": "19:0:31", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 33.61245346069336}}
+{"date": "2/10/2026", "time": "19:0:31", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 33.61245346069336}}
+{"date": "2/10/2026", "time": "19:0:45", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:0:46", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:0:47", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 6.889420201872835e-05"}
+{"date": "2/10/2026", "time": "19:0:47", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.00035786709868081726"}
+{"date": "2/10/2026", "time": "19:0:47", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "6.889420201872835e-05", "val_mAP50": "0.00035786709868081726", "val_loss": 3.3347370624542236}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:01.919703", "time_per_step": "0:00:01.050963", "eta": "0:00:00", "date": "2/10/2026", "time": "19:0:48", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "6.889420201872835e-05", "val_mAP50": "0.00035786709868081726", "val_loss": 3.3347370624542236}}
+{"date": "2/10/2026", "time": "19:0:48", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 32.410221099853516}}
+{"date": "2/10/2026", "time": "19:0:48", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 32.410221099853516}}
+{"date": "2/10/2026", "time": "19:0:48", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 32.410221099853516}}
+{"date": "2/10/2026", "time": "19:1:8", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:1:9", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:1:11", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00015724902271781817"}
+{"date": "2/10/2026", "time": "19:1:11", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0008350232302552403"}
+{"date": "2/10/2026", "time": "19:1:11", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.00015724902271781817", "val_mAP50": "0.0008350232302552403", "val_loss": 2.979609251022339}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:02.044005", "time_per_step": "0:00:01.100455", "eta": "0:00:00", "date": "2/10/2026", "time": "19:1:11", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.00015724902271781817", "val_mAP50": "0.0008350232302552403", "val_loss": 2.979609251022339}}
+{"date": "2/10/2026", "time": "19:1:11", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 32.13189697265625}}
+{"date": "2/10/2026", "time": "19:1:11", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 32.13189697265625}}
+{"date": "2/10/2026", "time": "19:1:11", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 32.13189697265625}}
+{"date": "2/10/2026", "time": "19:1:26", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:1:27", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:1:29", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 8.659479715446435e-05"}
+{"date": "2/10/2026", "time": "19:1:29", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0005222041399614646"}
+{"date": "2/10/2026", "time": "19:1:29", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "8.659479715446435e-05", "val_mAP50": "0.0005222041399614646", "val_loss": 2.887784004211426}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:02.225122", "time_per_step": "0:00:01.115851", "eta": "0:00:00", "date": "2/10/2026", "time": "19:1:29", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "8.659479715446435e-05", "val_mAP50": "0.0005222041399614646", "val_loss": 2.887784004211426}}
+{"date": "2/10/2026", "time": "19:1:29", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:1:29", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:1:29", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:2:2", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:2:3", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:2:5", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00011947779169324602"}
+{"date": "2/10/2026", "time": "19:2:5", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0004392443916363881"}
+{"date": "2/10/2026", "time": "19:2:5", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.00011947779169324602", "val_mAP50": "0.0004392443916363881", "val_loss": 3.079420328140259}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:02.502174", "time_per_step": "0:00:01.213659", "eta": "0:00:00", "date": "2/10/2026", "time": "19:2:5", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.00011947779169324602", "val_mAP50": "0.0004392443916363881", "val_loss": 3.079420328140259}}
+{"date": "2/10/2026", "time": "19:2:5", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 32.849483489990234}}
+{"date": "2/10/2026", "time": "19:2:5", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 32.849483489990234}}
+{"date": "2/10/2026", "time": "19:2:5", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 32.849483489990234}}
+{"date": "2/10/2026", "time": "19:2:19", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:2:20", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:3:3", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:3:4", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:3:32", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:3:33", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:3:35", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 8.659479715446435e-05"}
+{"date": "2/10/2026", "time": "19:3:35", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0005222041399614646"}
+{"date": "2/10/2026", "time": "19:3:35", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "8.659479715446435e-05", "val_mAP50": "0.0005222041399614646", "val_loss": 2.887784004211426}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:02.576496", "time_per_step": "0:00:01.209807", "eta": "0:00:00", "date": "2/10/2026", "time": "19:3:36", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "8.659479715446435e-05", "val_mAP50": "0.0005222041399614646", "val_loss": 2.887784004211426}}
+{"date": "2/10/2026", "time": "19:3:36", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:3:36", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:3:36", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:4:14", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:4:15", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"date": "2/10/2026", "time": "19:4:17", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 8.659479715446435e-05"}
+{"date": "2/10/2026", "time": "19:4:17", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0005222041399614646"}
+{"date": "2/10/2026", "time": "19:4:17", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "8.659479715446435e-05", "val_mAP50": "0.0005222041399614646", "val_loss": 2.887784004211426}}
+{"epoch": 0, "step": 1, "max_epoch": 0, "max_step": 1, "time_per_epoch": "0:00:02.592664", "time_per_step": "0:00:01.242240", "eta": "0:00:00", "date": "2/10/2026", "time": "19:4:17", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "8.659479715446435e-05", "val_mAP50": "0.0005222041399614646", "val_loss": 2.887784004211426}}
+{"date": "2/10/2026", "time": "19:4:17", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:4:17", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop complete.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:4:18", "status": "RUNNING", "verbosity": "INFO", "message": "Train finished successfully.", "kpi": {"train_loss": 32.38347244262695}}
+{"date": "2/10/2026", "time": "19:13:43", "status": "STARTED", "verbosity": "INFO", "message": "Starting RT-DETR train."}
+{"date": "2/10/2026", "time": "19:13:46", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.00020216156055431555"}
+{"date": "2/10/2026", "time": "19:13:46", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.0007526698605258866"}
+{"date": "2/10/2026", "time": "19:13:46", "status": "STARTED", "verbosity": "INFO", "message": "Starting Training Loop."}
+{"epoch": 0, "step": 416, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:02:04.087862", "time_per_step": "0:00:00.296198", "eta": "2:43:22.941080", "date": "2/10/2026", "time": "19:15:50", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress"}
+{"date": "2/10/2026", "time": "19:15:50", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 24.85814666748047}}
+{"epoch": 1, "step": 832, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:02:59.874758", "time_per_step": "0:00:00.362507", "eta": "3:53:50.231143", "date": "2/10/2026", "time": "19:18:51", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"train_loss": 24.85814666748047}}
+{"date": "2/10/2026", "time": "19:18:51", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 21.394084930419922}}
+{"epoch": 2, "step": 1248, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:02:01.354191", "time_per_step": "0:00:00.337988", "eta": "2:35:44.272694", "date": "2/10/2026", "time": "19:20:52", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"train_loss": 21.394084930419922}}
+{"date": "2/10/2026", "time": "19:20:52", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 19.683740615844727}}
+{"epoch": 3, "step": 1664, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:01:58.295727", "time_per_step": "0:00:00.324005", "eta": "2:29:50.475271", "date": "2/10/2026", "time": "19:22:51", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"train_loss": 19.683740615844727}}
+{"date": "2/10/2026", "time": "19:22:51", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 18.677845001220703}}
+{"date": "2/10/2026", "time": "19:25:2", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP : 0.5938599749366836", "kpi": {"train_loss": 18.677845001220703}}
+{"date": "2/10/2026", "time": "19:25:2", "status": "RUNNING", "verbosity": "INFO", "message": "Validation mAP50 : 0.7849644378270253", "kpi": {"train_loss": 18.677845001220703}}
+{"date": "2/10/2026", "time": "19:25:2", "status": "RUNNING", "verbosity": "INFO", "message": "Eval metrics generated.", "kpi": {"val_mAP": "0.5938599749366836", "val_mAP50": "0.7849644378270253", "val_loss": 1.1069138050079346}}
+{"epoch": 4, "step": 2080, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:02:11.349489", "time_per_step": "0:00:00.315602", "eta": "2:44:11.211709", "date": "2/10/2026", "time": "19:25:2", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"val_mAP": "0.5938599749366836", "val_mAP50": "0.7849644378270253", "val_loss": 1.1069138050079346}}
+{"date": "2/10/2026", "time": "19:25:2", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 17.79265022277832}}
+{"epoch": 5, "step": 2496, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:01:58.079360", "time_per_step": "0:00:00.309943", "eta": "2:25:37.872605", "date": "2/10/2026", "time": "19:27:1", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"train_loss": 17.79265022277832}}
+{"date": "2/10/2026", "time": "19:27:1", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 17.291194915771484}}
+{"epoch": 6, "step": 2912, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:01:58.487560", "time_per_step": "0:00:00.306041", "eta": "2:24:09.591848", "date": "2/10/2026", "time": "19:28:59", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"train_loss": 17.291194915771484}}
+{"date": "2/10/2026", "time": "19:28:59", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 16.73362922668457}}
+{"epoch": 7, "step": 3328, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:01:58.603167", "time_per_step": "0:00:00.303139", "eta": "2:22:19.428011", "date": "2/10/2026", "time": "19:30:58", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"train_loss": 16.73362922668457}}
+{"date": "2/10/2026", "time": "19:30:58", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 16.245899200439453}}
+{"epoch": 8, "step": 3744, "max_epoch": 79, "max_step": 33280, "time_per_epoch": "0:01:58.434013", "time_per_step": "0:00:00.300850", "eta": "2:20:08.814898", "date": "2/10/2026", "time": "19:32:56", "status": "RUNNING", "verbosity": "INFO", "message": "Training loop in progress", "kpi": {"train_loss": 16.245899200439453}}
+{"date": "2/10/2026", "time": "19:32:56", "status": "RUNNING", "verbosity": "INFO", "message": "Train metrics generated.", "kpi": {"train_loss": 16.06974220275879}}

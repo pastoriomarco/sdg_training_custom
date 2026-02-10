@@ -93,17 +93,10 @@ fi
 
 
 
-# 2) Ensure 'yolo' CLI (or fallback) is available
-YOLO_CMD=(yolo)
-if ! command -v yolo >/dev/null 2>&1; then
-  # Fallback to module invocation if CLI shim isn't on PATH
-  if python -m ultralytics --help >/dev/null 2>&1; then
-    YOLO_CMD=(python -m ultralytics)
-  else
-    echo "Error: 'yolo' CLI not found, and 'python -m ultralytics' not available. See $REQ_DOC." >&2
-    exit 1
-  fi
-fi
+# 2) Resolve YOLO entrypoint from the same Python we validated above.
+# This avoids PATH mismatches (e.g., ~/.local/bin/yolo bound to another Python)
+# and works with Ultralytics versions that do not expose ultralytics.__main__.
+YOLO_CMD=("$PY_BIN" -c "from ultralytics.cfg import entrypoint; entrypoint()")
 
 # 3) Validate dataset location
 if [[ ! -d "$OUT_ROOT/images/train" ]] || [[ ! -d "$OUT_ROOT/labels/train" ]]; then

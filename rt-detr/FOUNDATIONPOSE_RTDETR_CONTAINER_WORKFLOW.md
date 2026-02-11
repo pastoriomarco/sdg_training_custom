@@ -55,6 +55,27 @@ mkdir -p /workspace/isaac_ros_ws/third_party
   git clone https://github.com/lyuwenyu/RT-DETR.git /workspace/isaac_ros_ws/third_party/RT-DETR
 ```
 
+Inside TAO container: apply `torchvision` compatibility patch for TAO 6.25.11.
+
+```bash
+cat > /workspace/isaac_ros_ws/third_party/RT-DETR/rtdetr_pytorch/src/__init__.py <<'PY'
+"""RT-DETR package imports.
+
+TAO 6.25.11 ships torchvision without `torchvision.datapoints`, which breaks
+`src.data` import. ONNX export only needs model/postprocessor registries.
+"""
+
+try:
+    from . import data  # noqa: F401
+except Exception as e:
+    print(f"[src] Optional data import skipped: {e}")
+
+from . import nn  # noqa: F401
+from . import optim  # noqa: F401
+from . import zoo  # noqa: F401
+PY
+```
+
 Inside TAO container: choose TAO checkpoint and convert key format for upstream exporter.
 
 ```bash
@@ -66,15 +87,19 @@ export TAO_PTH=$RTDETR_ASSETS/rtdetr_model_latest.pth
 
 ```bash
 python3 - <<'PY'
-import os, torch
+import os
+import re
+import torch
+
 in_ckpt = os.environ["TAO_PTH"]
-out_ckpt = os.path.join(os.environ["RTDETR_ASSETS"], "rtdetr_for_export.pth")
+out_ckpt = os.path.join(os.environ["RTDETR_ASSETS"], "rtdetr_for_export_compat.pth")
 
 ckpt = torch.load(in_ckpt, map_location="cpu")
 src = ckpt.get("state_dict") or ckpt.get("model") or ((ckpt.get("ema") or {}).get("module"))
 if src is None:
     raise RuntimeError(f"Unsupported checkpoint keys: {list(ckpt.keys())}")
 
+# 1) Strip TAO training prefixes.
 converted = {}
 for k, v in src.items():
     if k.startswith("model.model."):
@@ -85,8 +110,45 @@ for k, v in src.items():
         nk = k
     converted[nk] = v
 
-torch.save({"model": converted}, out_ckpt)
-print("Saved:", out_ckpt, "params:", len(converted))
+# 2) Remap TAO ResNet key names to RT-DETR PResNet(variant=b) key names.
+remapped = {}
+for k, v in converted.items():
+    nk = k
+    if k == "backbone.conv1.weight":
+        nk = "backbone.conv1.conv1_1.conv.weight"
+    elif k.startswith("backbone.bn1."):
+        nk = "backbone.conv1.conv1_1.norm." + k.split("backbone.bn1.", 1)[1]
+    else:
+        m = re.match(r"^backbone\.layer(\d+)\.(\d+)\.(conv[123])\.(.+)$", k)
+        if m:
+            layer, block, conv_id, suffix = m.groups()
+            layer = int(layer) - 1
+            branch = {"conv1": "branch2a", "conv2": "branch2b", "conv3": "branch2c"}[conv_id]
+            nk = f"backbone.res_layers.{layer}.blocks.{block}.{branch}.conv.{suffix}"
+        else:
+            m = re.match(r"^backbone\.layer(\d+)\.(\d+)\.(bn[123])\.(.+)$", k)
+            if m:
+                layer, block, bn_id, suffix = m.groups()
+                layer = int(layer) - 1
+                branch = {"bn1": "branch2a", "bn2": "branch2b", "bn3": "branch2c"}[bn_id]
+                nk = f"backbone.res_layers.{layer}.blocks.{block}.{branch}.norm.{suffix}"
+            else:
+                m = re.match(r"^backbone\.layer(\d+)\.(\d+)\.downsample\.0\.(.+)$", k)
+                if m:
+                    layer, block, suffix = m.groups()
+                    layer = int(layer) - 1
+                    nk = f"backbone.res_layers.{layer}.blocks.{block}.short.conv.{suffix}"
+                else:
+                    m = re.match(r"^backbone\.layer(\d+)\.(\d+)\.downsample\.1\.(.+)$", k)
+                    if m:
+                        layer, block, suffix = m.groups()
+                        layer = int(layer) - 1
+                        nk = f"backbone.res_layers.{layer}.blocks.{block}.short.norm.{suffix}"
+
+    remapped[nk] = v
+
+torch.save({"model": remapped}, out_ckpt)
+print("Saved:", out_ckpt, "params:", len(remapped))
 PY
 ```
 
@@ -98,7 +160,7 @@ export NUM_CLASSES=$(awk '/^  num_classes:/{print $2; exit}' \
 ```
 
 ```bash
-cat > /workspace/isaac_ros_ws/third_party/RT-DETR/rtdetr_pytorch/configs/rtdetr/rtdetr_r50vd_6x_tao_custom.yml <<EOF
+cat > /workspace/isaac_ros_ws/third_party/RT-DETR/rtdetr_pytorch/configs/rtdetr/rtdetr_r50_tao_compat.yml <<EOF
 __include__: [
   '../dataset/coco_detection.yml',
   '../runtime.yml',
@@ -109,7 +171,17 @@ __include__: [
 num_classes: ${NUM_CLASSES}
 remap_mscoco_category: False
 use_focal_loss: True
-output_dir: ./output/rtdetr_r50vd_6x_tao_custom
+output_dir: ./output/rtdetr_r50_tao_compat
+
+# TAO checkpoints are standard ResNet; override backbone variant for key compatibility.
+PResNet:
+  depth: 50
+  variant: b
+  freeze_at: 0
+  return_idx: [1, 2, 3]
+  num_stages: 4
+  freeze_norm: False
+  pretrained: False
 EOF
 ```
 
@@ -118,8 +190,8 @@ Inside TAO container: export ONNX in Isaac-compatible format.
 ```bash
 cd /workspace/isaac_ros_ws/third_party/RT-DETR/rtdetr_pytorch
 python3 tools/export_onnx.py \
-  -c configs/rtdetr/rtdetr_r50vd_6x_tao_custom.yml \
-  -r /workspace/isaac_ros_ws/isaac_ros_assets/models/rt_detr_custom/rtdetr_for_export.pth \
+  -c configs/rtdetr/rtdetr_r50_tao_compat.yml \
+  -r /workspace/isaac_ros_ws/isaac_ros_assets/models/rt_detr_custom/rtdetr_for_export_compat.pth \
   -f /workspace/isaac_ros_ws/isaac_ros_assets/models/rt_detr_custom/model_isaac.onnx \
   --check
 ```

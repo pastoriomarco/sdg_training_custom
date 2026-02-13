@@ -1,2 +1,6 @@
 # TAO RT-DETR training outputs
 rt-detr/results/
+
+# Python cache artifacts
+__pycache__/
+*.py[cod]
